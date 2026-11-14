@@ -591,6 +591,30 @@ canvas.chart{border-radius:12px}
  main>.stats .stat b{font-size:16px}
 }
 
+
+/* ===== ADVANCED REPORT + BUDGET THRESHOLD ALERTS ===== */
+.budget-alert{display:flex;flex-direction:column;gap:3px;margin:0 0 12px;padding:11px 14px;border:1px solid;border-radius:12px;font-size:12px;line-height:1.45}
+.budget-alert[hidden]{display:none!important}
+.budget-alert b{font-size:13px}
+.budget-alert.is-notice{background:#fff8e8;border-color:#f4d58b;color:#855b12}
+.budget-alert.is-warning{background:#fff1df;border-color:#f2bf78;color:#8a4b08}
+.budget-alert.is-danger{background:#fff0f0;border-color:#efb0b0;color:#a52e35}
+.range-report-fields{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin:12px 0}
+.range-report-fields>div{min-width:0}
+.range-report-fields label{display:block;margin:0 0 4px;font-size:12px}
+.range-report-fields input{width:100%;margin:0}
+.range-report-fields button{white-space:nowrap;min-height:38px}
+.range-report-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:13px}
+.range-report-summary .stat{min-width:0;padding:12px;border:1px solid #e7edf5;background:#f6f9fd}
+.range-report-summary .stat b{font-size:clamp(16px,2vw,21px);overflow-wrap:anywhere}
+.range-report-period{margin:10px 0}
+.range-report-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.range-report-categories>div{display:flex;justify-content:space-between;gap:10px;padding:9px 11px;border-radius:9px;background:#f5f8fc;font-size:12px}
+.range-report-categories>div span{min-width:0;overflow-wrap:anywhere}
+.range-report-error{padding:9px 11px;border-radius:9px;background:#fff0f0;color:#b4232c}
+@media(max-width:650px){.range-report-fields{grid-template-columns:1fr 1fr}.range-report-fields button{grid-column:1/-1;width:100%}.range-report-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.range-report-categories{grid-template-columns:1fr}}
+@media(max-width:380px){.range-report-fields{grid-template-columns:1fr}}
+
 </style>
 </head>
 
@@ -622,6 +646,9 @@ canvas.chart{border-radius:12px}
   <div class="dashboard-heading">
    <div><span class="dashboard-kicker">YOUR MONEY AT A GLANCE</span><h3>📊 आपका Financial Dashboard</h3><p>इस महीने की पूरी वित्तीय स्थिति एक जगह</p></div>
    <span class="dashboard-month" id="dashboardMonth"></span>
+   </div>
+   <div id="budgetAlert" class="budget-alert" role="status" aria-live="polite" hidden></div>
+   <div class="entry-quick-actions">
   </div>
   <div class="entry-quick-actions"><button type="button" onclick="toggleEntryPanel('expenseEntryFields',true)">＋ नया खर्च / Income</button><button type="button" class="secondary" onclick="toggleEntryPanel('loanEntryFields',true)">＋ नया उधार</button></div>
   <div class="dashboard-grid">
@@ -699,7 +726,11 @@ canvas.chart{border-radius:12px}
  </div>
 
  <div class="card">
-  <h3>📈 Graph और Charts</h3>
+  <h3>📊 Advanced Date Range Report</h3>
+   <p class="muted">किसी भी तारीख से किसी भी तारीख तक Income, खर्च और बचत का हिसाब देखें।</p>
+   <div class="range-report-fields"><div><label for="reportFrom">शुरुआत की तारीख</label><input id="reportFrom" type="date"></div><div><label for="reportTo">अंतिम तारीख</label><input id="reportTo" type="date"></div><button type="button" onclick="runRangeReport()">रिपोर्ट देखें</button></div>
+   <div id="rangeReportResult" aria-live="polite"><p class="muted">तारीख चुनकर रिपोर्ट देखें।</p></div>
+   <h3>📈 Graph और Charts</h3>
   <p class="muted">चुने हुए महीने और पिछले 11 महीनों की Income व खर्च की तुलना।</p>
   <canvas id="trendChart" class="chart" width="720" height="260"></canvas>
   <div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div>
@@ -1785,7 +1816,9 @@ function renderDashboard(){
  $("dashBudgetLeft").textContent=money(remaining);
  $("dashBudgetBar").style.width=Math.min(100,Math.max(0,percent))+"%";
  $("dashBudgetBar").style.background=percent>=100?"linear-gradient(90deg,#dc4545,#f07878)":percent>=80?"linear-gradient(90deg,#e59a24,#f3c56b)":"linear-gradient(90deg,#27a56a,#5bc58a)";
- $("dashBudgetHint").textContent=budgetValue>0?(percent>=100?"⚠️ आपका बजट पार हो गया है।":percent>=80?"ध्यान दें: बजट का बड़ा हिस्सा खर्च हो चुका है।":"आप बजट के अंदर हैं।"):"पहले मासिक बजट सेट करें।";
+  $("dashBudgetHint").textContent=budgetValue>0?(percent>=100?"⚠️ आपका बजट पार हो गया है।":percent>=90?"सावधान: बजट लगभग पूरा हो गया है।":percent>=75?"ध्यान दें: बजट का 75% खर्च हो चुका है।":"आप बजट के अंदर हैं।"):"पहले मासिक बजट सेट करें।";
+  const alertBox=$("budgetAlert");
+  if(alertBox){if(percent>=100){alertBox.hidden=false;alertBox.className="budget-alert is-danger";alertBox.innerHTML="<b>🚨 Budget 100% पूरा हो गया!</b><span>बजट से "+money(Math.max(0,spent-budgetValue))+" ज्यादा खर्च हुआ है।</span>";}else if(percent>=90){alertBox.hidden=false;alertBox.className="budget-alert is-warning";alertBox.innerHTML="<b>⚠️ Budget 90% तक पहुँच गया है</b><span>अब सिर्फ "+money(Math.max(0,remaining))+" बजट शेष है।</span>";}else if(percent>=75){alertBox.hidden=false;alertBox.className="budget-alert is-notice";alertBox.innerHTML="<b>🔔 Budget 75% खर्च हो चुका है</b><span>अब "+money(Math.max(0,remaining))+" बजट शेष है।</span>";}else{alertBox.hidden=true;alertBox.innerHTML="";}}
  const loans=expenses.filter(x=>x.recordType==="loan");
  const lent=loans.filter(x=>x.loanDirection==="lent").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);
  const borrowed=loans.filter(x=>x.loanDirection==="borrowed").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);
@@ -1896,6 +1929,22 @@ function render(){
  renderCharts();
  renderYearSummary();
  renderDashboard();
+}
+
+function runRangeReport(){
+ const from=$("reportFrom").value,to=$("reportTo").value,out=$("rangeReportResult");
+ if(!from||!to){out.innerHTML='<p class="range-report-error">कृपया शुरुआत और अंतिम तारीख दोनों चुनें।</p>';return;}
+ if(from>to){out.innerHTML='<p class="range-report-error">शुरुआत की तारीख, अंतिम तारीख से पहले होनी चाहिए।</p>';return;}
+ const rows=expenses.filter(x=>x.recordType!=="loan"&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.date||""))&&x.date>=from&&x.date<=to);
+ const incomeRows=rows.filter(x=>transactionType(x)==="income"),expenseRows=rows.filter(x=>transactionType(x)==="expense");
+ const income=incomeRows.reduce((s,x)=>s+Number(x.amount||0),0),spent=expenseRows.reduce((s,x)=>s+Number(x.amount||0),0),net=income-spent;
+ const categories={};expenseRows.forEach(x=>{const k=x.category||"अन्य";categories[k]=(categories[k]||0)+Number(x.amount||0);});
+ const categoryRows=Object.entries(categories).sort((a,b)=>b[1]-a[1]);
+ const fmt=d=>new Date(d+"T00:00:00").toLocaleDateString("hi-IN",{day:"2-digit",month:"short",year:"numeric"});
+ const cards='<div class="range-report-summary"><div class="stat"><small>कुल Income</small><b style="color:#16804a">'+money(income)+'</b></div><div class="stat"><small>कुल खर्च</small><b style="color:#c64b4b">'+money(spent)+'</b></div><div class="stat"><small>बचत / अंतर</small><b style="color:'+(net<0?"#dc2626":"#16804a")+'">'+money(net)+'</b></div><div class="stat"><small>कुल Entries</small><b>'+rows.length+'</b></div></div>';
+ const period='<p class="muted range-report-period">अवधि: '+fmt(from)+' से '+fmt(to)+' · Income '+incomeRows.length+' · खर्च '+expenseRows.length+'</p>';
+ const cats=categoryRows.length?'<div class="range-report-categories">'+categoryRows.map(([name,value])=>'<div><span>'+escapeHtml(name)+'</span><b>'+money(value)+'</b></div>').join("")+'</div>':'<p class="muted">इस अवधि में खर्च की कोई entry नहीं है।</p>';
+ out.innerHTML=cards+period+"<h4>खर्च की श्रेणी के अनुसार</h4>"+cats;
 }
 
 function renderMonthlyReport(){
@@ -2151,6 +2200,8 @@ window.addEventListener("offline",()=>{
 $("date").value=today();
 $("loanDate").value=today();
 $("reportMonth").value=monthKey();
+$("reportFrom").value=monthKey()+"-01";
+$("reportTo").value=today();
 updateTransactionForm();
 loadLocal();
 render();
