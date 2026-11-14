@@ -1662,7 +1662,7 @@ function render(){
  const groupedMonths={};
  rows.forEach(x=>{
   const key=String(x.date||"").slice(0,7);
-  const folderKey=/^\\d{4}-\\d{2}$/.test(key)?key:"unknown";
+  const folderKey=/^\d{4}-\d{2}$/.test(key)?key:"unknown";
   (groupedMonths[folderKey]||(groupedMonths[folderKey]=[])).push(x);
  });
  // हर नए महीने का फोल्डर अपने आप दिखेगा, भले अभी उसमें entry न हो।
