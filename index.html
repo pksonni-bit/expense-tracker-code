@@ -329,6 +329,27 @@ table td,table th{padding:6px!important}
 @media(max-width:760px){.form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.loan-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.form-grid,.loan-form-grid{grid-template-columns:1fr;gap:9px}.form-field-wide{grid-column:auto}.form-actions{display:grid;grid-template-columns:1fr 1fr}.form-actions button{min-width:0;width:100%}.dashboard-entry-card .entry-toggle{font-size:12px}}
 
+
+/* ===== ENTRY FORMS IN CENTERED POPUP MODALS ===== */
+.entry-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(12,25,43,.58);backdrop-filter:blur(3px)}
+.entry-modal.is-open{display:flex}
+.entry-modal-box{width:min(760px,100%);max-height:min(92vh,900px);overflow:auto;background:#fff;border-radius:18px;box-shadow:0 24px 80px #06172e55;animation:entryModalIn .16s ease-out}
+.entry-modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 17px;background:#fff;border-bottom:1px solid #e8eef6}
+.entry-modal-head h3{margin:0;color:#173b67;font-size:17px}
+.entry-modal-head button{width:34px;height:34px;padding:0;font-size:19px;background:#edf2f8;color:#405875;box-shadow:none}
+.entry-modal-content{padding:15px}
+.entry-modal-content>.dashboard-entry-card{margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}
+.entry-modal-content .entry-toggle{display:none!important}
+.entry-modal-content .entry-fields{display:block!important;margin:0;padding:0;border:0}
+.entry-modal-content .form-grid{gap:12px 14px}
+.entry-modal-content .form-actions{position:sticky;bottom:-15px;background:#fff;padding:12px 0 4px}
+.entry-modal-content .form-actions button{flex:1}
+.entry-modal-content .dashboard-entry-card h3{display:none}
+.entry-quick-actions button{cursor:pointer}
+body.entry-modal-open{overflow:hidden}
+@keyframes entryModalIn{from{opacity:.7;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:600px){.entry-modal{padding:8px;align-items:flex-end}.entry-modal-box{width:100%;max-height:94vh;border-radius:17px 17px 10px 10px}.entry-modal-head{padding:12px 14px}.entry-modal-content{padding:12px}.entry-modal-content .form-grid,.entry-modal-content .loan-form-grid{grid-template-columns:1fr}.entry-modal-content .form-field-wide{grid-column:auto}.entry-modal-content .form-actions{bottom:-12px}}
+
 </style>
 </head>
 
@@ -1148,7 +1169,7 @@ window.resetForm=()=>{
  $("formTitle").textContent="➕ नया खर्च जोड़ें";
  $("saveBtn").textContent="खर्च सेव करें";
  const panel=$("expenseEntryFields");if(panel)panel.hidden=true;
- const toggle=panel&&panel.previousElementSibling;if(toggle)toggle.textContent="＋ Entry Form खोलें";
+ window.closeEntryModal();
 };
 
 
@@ -1514,24 +1535,24 @@ window.setFilter=mode=>{
 
 window.render=render;
 
+window.closeEntryModal=()=>{
+ const modal=document.getElementById("entryModal");
+ if(modal)modal.classList.remove("is-open");
+ document.body.classList.remove("entry-modal-open");
+ ["expenseEntryFields","loanEntryFields"].forEach(id=>{const p=document.getElementById(id);if(p)p.hidden=true;});
+};
 window.toggleEntryPanel=(id,open)=>{
- const panelIds=["expenseEntryFields","loanEntryFields"];
- if(!panelIds.includes(id))return;
- const target=document.getElementById(id);
- if(!target)return;
- const shouldOpen=typeof open==="boolean"?open:target.hasAttribute("hidden");
- // सभी फॉर्म की visibility और उनके labels एक ही जगह से नियंत्रित करें।
- panelIds.forEach(panelId=>{
-  const current=document.getElementById(panelId);
-  if(!current)return;
-  const isOpen=panelId===id?shouldOpen:(shouldOpen?false:!current.hasAttribute("hidden"));
-  current.hidden=!isOpen;
-  const card=current.closest(".dashboard-entry-card")||current.parentElement;
-  const toggle=card&&card.querySelector(".entry-toggle");
-  if(toggle){
-   toggle.textContent=isOpen?"− Entry Form बंद करें":(panelId==="loanEntryFields"?"＋ Udhaar Entry Form खोलें":"＋ Entry Form खोलें");
-  }
- });
+ const allowed=["expenseEntryFields","loanEntryFields"];
+ if(!allowed.includes(id))return;
+ if(open===false){window.closeEntryModal();return;}
+ const panel=document.getElementById(id);if(!panel)return;
+ const modal=document.getElementById("entryModal");
+ if(!modal)return;
+ ["expenseEntryFields","loanEntryFields"].forEach(pid=>{const p=document.getElementById(pid);if(p)p.hidden=pid!==id;});
+ const title=document.getElementById("entryModalTitle");
+ if(title)title.textContent=id==="loanEntryFields"?"🤝 नया उधार दर्ज करें":"➕ नया खर्च / Income दर्ज करें";
+ modal.classList.add("is-open");document.body.classList.add("entry-modal-open");
+ const first=panel.querySelector("input,select");if(first)setTimeout(()=>first.focus({preventScroll:true}),80);
 };
 
 function renderDashboard(){
@@ -1866,17 +1887,30 @@ window.addEventListener("offline",()=>{
 });
 
 
-/* PLACE ENTRY FORMS INSIDE THE DASHBOARD: QUICK ACTIONS OPEN THEM IN PLACE */
+/* ENTRY FORMS: MOVE INTO POPUP MODAL; KEEP UDHAAR SUMMARY ON DASHBOARD */
 (()=>{
  const shell=document.querySelector(".dashboard-shell");
- const quick=document.querySelector(".entry-quick-actions");
  const expenseCard=$("formTitle")?.closest(".card");
  const loanCard=$("loanDirection")?.closest(".card");
- if(shell&&quick&&expenseCard&&loanCard){
-  quick.after(expenseCard,loanCard);
-  expenseCard.classList.add("dashboard-entry-card");
-  loanCard.classList.add("dashboard-entry-card");
+ if(!shell||!expenseCard||!loanCard)return;
+ expenseCard.classList.add("dashboard-entry-card");
+ loanCard.classList.add("dashboard-entry-card");
+ const summary=$("loanSummary"),list=$("loanList");
+ if(summary&&list){
+  const overview=document.createElement("section");
+  overview.className="card loan-overview-card";
+  overview.innerHTML="<h3>🤝 उधार का सारांश और हिसाब</h3>";
+  overview.append(summary,list);shell.after(overview);
  }
+ const modal=document.createElement("div");
+ modal.id="entryModal";modal.className="entry-modal";modal.setAttribute("role","dialog");modal.setAttribute("aria-modal","true");
+ modal.setAttribute("aria-labelledby","entryModalTitle");
+ modal.innerHTML='<div class="entry-modal-box"><div class="entry-modal-head"><h3 id="entryModalTitle">नई Entry</h3><button type="button" aria-label="बंद करें" onclick="closeEntryModal()">×</button></div><div class="entry-modal-content" id="entryModalContent"></div></div>';
+ modal.addEventListener("click",e=>{if(e.target===modal)closeEntryModal();});
+ document.body.append(modal);
+ const content=document.getElementById("entryModalContent");
+ content.append(expenseCard,loanCard);
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("is-open"))closeEntryModal();});
 })();
 
 /* APP START */
