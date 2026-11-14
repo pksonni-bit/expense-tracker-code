@@ -1929,7 +1929,7 @@ function render(){
  renderDashboard();
 }
 
-function runRangeReport(){
+window.runRangeReport=()=>{
  const from=$("reportFrom").value,to=$("reportTo").value,out=$("rangeReportResult");
  if(!from||!to){out.innerHTML='<p class="range-report-error">कृपया शुरुआत और अंतिम तारीख दोनों चुनें।</p>';return;}
  if(from>to){out.innerHTML='<p class="range-report-error">शुरुआत की तारीख, अंतिम तारीख से पहले होनी चाहिए।</p>';return;}
