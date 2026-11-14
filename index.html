@@ -388,7 +388,6 @@ body.entry-modal-open{overflow:hidden}
   <div class="entry-quick-actions"><button type="button" onclick="toggleEntryPanel('expenseEntryFields',true)">＋ नया खर्च / Income</button><button type="button" class="secondary" onclick="toggleEntryPanel('loanEntryFields',true)">＋ नया उधार</button></div>
   <div class="dashboard-grid">
    <section class="dash-panel dash-budget"><div class="dash-panel-title"><span>🎯 Budget Progress</span><small id="dashBudgetPercent">0%</small></div><div class="dash-budget-values"><div><small>खर्च हुआ</small><b id="dashBudgetSpent">₹0</b></div><div><small>बजट शेष</small><b id="dashBudgetLeft">₹0</b></div></div><div class="dash-track"><div id="dashBudgetBar"></div></div><p id="dashBudgetHint" class="dash-hint"></p></section>
-   <section class="dash-panel dash-chart-panel"><div class="dash-panel-title"><span>📈 Monthly Charts</span><small>पिछले 6 महीने</small></div><canvas id="dashboardMonthlyChart" class="chart" width="720" height="230"></canvas><div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div></section>
    <section class="dash-panel"><div class="dash-panel-title"><span>🤝 Udhaar Summary</span><small>बाकी रकम</small></div><div class="dash-loan-values"><div><small>वापस लेने हैं</small><b id="dashLent">₹0</b></div><div><small>वापस देने हैं</small><b id="dashBorrowed">₹0</b></div></div><p class="dash-hint" id="dashLoanHint"></p></section>
    <section class="dash-panel"><div class="dash-panel-title"><span>🧾 Recent Transactions</span><small>हाल की 5 entries</small></div><div id="dashRecent" class="dash-recent"></div></section>
    <section class="dash-panel"><div class="dash-panel-title"><span>🏆 Top Expense Categories</span><small>इस महीने</small></div><div id="dashTopCategories"></div></section>
@@ -468,7 +467,7 @@ body.entry-modal-open{overflow:hidden}
   <div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div>
   <h4>📊 चुने हुए महीने का Payment Mode Distribution</h4><canvas id="paymentChart" class="chart" width="720" height="230"></canvas>
  </div>
- <div class="card"><h3>🗓️ Yearly Financial Summary</h3><label>साल चुनें</label><select id="yearSelect" onchange="render()"></select><div id="yearSummary"></div><canvas id="yearChart" class="chart" width="720" height="270"></canvas></div>
+ <div class="card"><h3>🗓️ Yearly Financial Summary</h3><label>साल चुनें</label><select id="yearSelect" onchange="render()"></select><div id="yearSummary"></div></div>
 
 <div class="card">
   <h3>🗑️ Recycle Bin</h3>
@@ -1584,9 +1583,6 @@ function renderDashboard(){
  const modes={};thisMonth.filter(x=>transactionType(x)==="expense").forEach(x=>{const k=x.payment||"Other";modes[k]=(modes[k]||0)+Number(x.amount||0);});
  const modeRows=Object.entries(modes).sort((a,b)=>b[1]-a[1]),modeMax=Math.max(1,...modeRows.map(x=>x[1]));
  $("dashPaymentModes").innerHTML=modeRows.length?modeRows.map(([name,value])=>'<div class="dash-meter-row"><div class="dash-meter-label"><b>'+escapeHtml(name)+'</b><span>'+money(value)+'</span></div><div class="dash-meter-track"><span style="width:'+Math.max(2,value/modeMax*100)+'%"></span></div></div>').join(""):"<div class='dash-empty'>इस महीने भुगतान डेटा नहीं है।</div>";
- const labels=[],incomes=[],expensesByMonth=[],incomeDetails=[],expenseDetails=[];
- for(let i=5;i>=0;i--){const d=new Date(year,month-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),items=normal.filter(x=>String(x.date||"").startsWith(key));labels.push(d.toLocaleDateString("en-IN",{month:"short"}));const incItems=items.filter(x=>transactionType(x)==="income"),expItems=items.filter(x=>transactionType(x)==="expense");incomes.push(sum(items,"income"));expensesByMonth.push(sum(items,"expense"));incomeDetails.push(incItems);expenseDetails.push(expItems);}
- drawGroupedBars("dashboardMonthlyChart",labels,[{label:"Income",values:incomes,color:"#2563eb",details:incomeDetails},{label:"खर्च",values:expensesByMonth,color:"#f97316",details:expenseDetails}]);
 }
 
 function render(){
@@ -1830,12 +1826,11 @@ function renderCharts(){
  drawDonut("paymentChart",modes);
 }
 function renderYearSummary(){
- const years=[...new Set(expenses.filter(x=>x.recordType!=="loan").map(x=>String(x.date||"").slice(0,4)).filter(x=>/^\d{4}$/.test(x)))].sort().reverse(),current=String(new Date().getFullYear());if(!years.includes(current))years.unshift(current);const sel=$("yearSelect"),old=sel.value;sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");sel.value=years.includes(old)?old:current;const year=sel.value||current;let ti=0,te=0,inc=[],exp=[],labels=[],rows=[];
- const incomeDetails=[],expenseDetails=[];
- for(let m=1;m<=12;m++){const key=year+"-"+String(m).padStart(2,"0"),a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key)),incItems=a.filter(x=>transactionType(x)==="income"),expItems=a.filter(x=>transactionType(x)==="expense"),i=incItems.reduce((t,x)=>t+Number(x.amount||0),0),e=expItems.reduce((t,x)=>t+Number(x.amount||0),0);ti+=i;te+=e;inc.push(i);exp.push(e);incomeDetails.push(incItems);expenseDetails.push(expItems);labels.push(["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]);if(i||e)rows.push(`<tr><td>${key}</td><td style="text-align:right">${money(i)}</td><td style="text-align:right">${money(e)}</td><td style="text-align:right">${money(i-e)}</td></tr>`);}
- $("yearSummary").innerHTML=`<div class="stats"><div class="stat"><small>${year} की Income</small><b style="color:#15803d">${money(ti)}</b></div><div class="stat"><small>${year} का खर्च</small><b>${money(te)}</b></div><div class="stat"><small>साल की बचत / अंतर</small><b style="color:${ti-te<0?"#dc2626":"#15803d"}">${money(ti-te)}</b></div><div class="stat"><small>कुल दर्ज महीने</small><b>${rows.length}</b></div></div><h4>Month-wise Summary</h4><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:7px">महीना</th><th style="text-align:right;padding:7px">Income</th><th style="text-align:right;padding:7px">खर्च</th><th style="text-align:right;padding:7px">अंतर</th></tr></thead><tbody>${rows.join("")||"<tr><td colspan='4'>इस साल कोई entry नहीं है।</td></tr>"}</tbody></table></div>`;drawGroupedBars("yearChart",labels,[{label:"Income",values:inc,color:"#2563eb",details:incomeDetails},{label:"खर्च",values:exp,color:"#f97316",details:expenseDetails}]);
+ const years=[...new Set(expenses.filter(x=>x.recordType!=="loan").map(x=>String(x.date||"").slice(0,4)).filter(x=>/^\\d{4}$/.test(x)))].sort().reverse(),current=String(new Date().getFullYear());if(!years.includes(current))years.unshift(current);const sel=$("yearSelect"),old=sel.value;sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");sel.value=years.includes(old)?old:current;const year=sel.value||current;let ti=0,te=0,rows=[];
+ for(let m=1;m<=12;m++){const key=year+"-"+String(m).padStart(2,"0"),a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key)),i=a.filter(x=>transactionType(x)==="income").reduce((t,x)=>t+Number(x.amount||0),0),e=a.filter(x=>transactionType(x)==="expense").reduce((t,x)=>t+Number(x.amount||0),0);ti+=i;te+=e;if(i||e)rows.push(`<tr><td>${key}</td><td style="text-align:right">${money(i)}</td><td style="text-align:right">${money(e)}</td><td style="text-align:right">${money(i-e)}</td></tr>`);}
+ $("yearSummary").innerHTML=`<div class="stats"><div class="stat"><small>${year} की Income</small><b style="color:#15803d">${money(ti)}</b></div><div class="stat"><small>${year} का खर्च</small><b>${money(te)}</b></div><div class="stat"><small>साल की बचत / अंतर</small><b style="color:${ti-te<0?"#dc2626":"#15803d"}">${money(ti-te)}</b></div><div class="stat"><small>कुल दर्ज महीने</small><b>${rows.length}</b></div></div><h4>Month-wise Summary</h4><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:7px">महीना</th><th style="text-align:right;padding:7px">Income</th><th style="text-align:right;padding:7px">खर्च</th><th style="text-align:right;padding:7px">अंतर</th></tr></thead><tbody>${rows.join("")||"<tr><td colspan='4'>इस साल कोई entry नहीं है।</td></tr>"}</tbody></table></div>`;
 }
-window.addEventListener("resize",()=>{if($("trendChart"))renderCharts();if($("yearChart"))renderYearSummary();});
+window.addEventListener("resize",()=>{if($("trendChart"))renderCharts();});
 
 /* HTML SECURITY */
 
