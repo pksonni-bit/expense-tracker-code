@@ -184,6 +184,28 @@ table td,table th{border-bottom:1px solid #e9edf3}
 @media(min-width:900px){.dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dash-chart-panel{grid-column:span 2}.dashboard-shell{padding:25px}}
 @media(max-width:600px){.dashboard-shell{padding:15px;border-radius:16px}.dashboard-heading{align-items:flex-start;flex-direction:column}.dashboard-heading h3{font-size:20px}.dashboard-grid{grid-template-columns:1fr}.dash-panel{padding:14px}.dashboard-month{align-self:flex-start}}
 
+
+/* ===== COMPACT DASHBOARD + COLLAPSIBLE ENTRY FORMS ===== */
+.entry-quick-actions{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 13px}
+.entry-quick-actions button{flex:1;min-width:170px;padding:12px 14px}
+.entry-toggle{width:100%;margin:3px 0 2px;background:#edf4fc;color:#1d5793;border:1px solid #dce8f6;box-shadow:none;text-align:left}
+.entry-fields{margin-top:13px;padding-top:12px;border-top:1px solid #edf1f6}
+.entry-fields[hidden]{display:none!important}
+.dashboard-shell{padding:17px;border-radius:17px}
+.dashboard-heading{margin-bottom:12px}
+.dashboard-heading h3{font-size:20px}
+.dashboard-grid{gap:10px}
+.dash-panel{padding:13px;border-radius:13px}
+.dash-panel-title{margin-bottom:9px}
+.dash-budget-values,.dash-loan-values{margin:5px 0 10px;gap:8px}
+.dash-budget-values b,.dash-loan-values b{font-size:20px}
+.dash-recent-row{padding:7px 0}
+.dash-meter-row{margin:7px 0}
+main>.card{padding:16px}
+main>.card h3{margin-bottom:11px}
+@media(min-width:900px){.dashboard-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.dash-chart-panel{grid-column:span 2}.dashboard-shell{padding:19px}}
+@media(max-width:600px){.entry-quick-actions{flex-direction:column}.entry-quick-actions button{width:100%}.dashboard-shell{padding:13px}.dash-panel{padding:12px}}
+
 </style>
 </head>
 
@@ -218,6 +240,7 @@ table td,table th{border-bottom:1px solid #e9edf3}
    <div><span class="dashboard-kicker">YOUR MONEY AT A GLANCE</span><h3>📊 आपका Financial Dashboard</h3><p>इस महीने की पूरी वित्तीय स्थिति एक जगह</p></div>
    <span class="dashboard-month" id="dashboardMonth"></span>
   </div>
+  <div class="entry-quick-actions"><button type="button" onclick="toggleEntryPanel('expenseEntryFields',true)">＋ नया खर्च / Income</button><button type="button" class="secondary" onclick="toggleEntryPanel('loanEntryFields',true)">＋ नया उधार</button></div>
   <div class="dashboard-grid">
    <section class="dash-panel dash-budget"><div class="dash-panel-title"><span>🎯 Budget Progress</span><small id="dashBudgetPercent">0%</small></div><div class="dash-budget-values"><div><small>खर्च हुआ</small><b id="dashBudgetSpent">₹0</b></div><div><small>बजट शेष</small><b id="dashBudgetLeft">₹0</b></div></div><div class="dash-track"><div id="dashBudgetBar"></div></div><p id="dashBudgetHint" class="dash-hint"></p></section>
    <section class="dash-panel dash-chart-panel"><div class="dash-panel-title"><span>📈 Monthly Charts</span><small>पिछले 6 महीने</small></div><canvas id="dashboardMonthlyChart" class="chart" width="720" height="230"></canvas><div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div></section>
@@ -239,6 +262,8 @@ table td,table th{border-bottom:1px solid #e9edf3}
 
  <div class="card">
   <h3 id="formTitle">➕ नया खर्च जोड़ें</h3>
+  <button type="button" class="entry-toggle" onclick="toggleEntryPanel('expenseEntryFields')">＋ Entry Form खोलें</button>
+  <div id="expenseEntryFields" class="entry-fields" hidden>
   <label>तारीख</label>
   <input id="date" type="date">
 
@@ -275,16 +300,20 @@ table td,table th{border-bottom:1px solid #e9edf3}
    <button onclick="saveExpense()" id="saveBtn">खर्च सेव करें</button>
    <button class="secondary" onclick="resetForm()">रद्द करें</button>
   </div>
+  </div>
  </div>
 
  <div class="card">
   <h3>🤝 उधार / दिए हुए पैसे का हिसाब</h3>
+  <button type="button" class="entry-toggle" onclick="toggleEntryPanel('loanEntryFields')">＋ Udhaar Entry Form खोलें</button>
+  <div id="loanEntryFields" class="entry-fields" hidden>
   <label>लेन-देन</label><select id="loanDirection"><option value="lent">मैंने पैसे दिए (वापस लेने हैं)</option><option value="borrowed">मैंने पैसे उधार लिए (वापस देने हैं)</option></select>
   <label>व्यक्ति का नाम</label><input id="loanPerson" maxlength="80" placeholder="किसको दिए / किससे लिए">
   <div class="row"><div style="flex:1"><label>कुल राशि (₹)</label><input id="loanAmount" type="number" min="0.01" step="0.01" placeholder="राशि"></div><div style="flex:1"><label>पहले से वापस (₹)</label><input id="loanPaid" type="number" min="0" step="0.01" value="0"></div></div>
   <div class="row"><div style="flex:1"><label>तारीख</label><input id="loanDate" type="date"></div><div style="flex:1"><label>वापसी की तारीख</label><input id="loanDue" type="date"></div></div>
   <label>विवरण / Notes</label><input id="loanNote" maxlength="200" placeholder="उधार का कारण या अन्य जानकारी">
-  <button onclick="saveLoan()">उधार की Entry सेव करें</button><div id="loanSummary" class="stats" style="margin-top:12px"></div><div id="loanList"></div>
+  <button onclick="saveLoan()">उधार की Entry सेव करें</button>
+  </div><div id="loanSummary" class="stats" style="margin-top:12px"></div><div id="loanList"></div>
  </div>
 
  <div class="card">
@@ -1016,6 +1045,8 @@ window.resetForm=()=>{
  $("receiptPreview").textContent="";
  $("formTitle").textContent="➕ नया खर्च जोड़ें";
  $("saveBtn").textContent="खर्च सेव करें";
+ const panel=$("expenseEntryFields");if(panel)panel.hidden=true;
+ const toggle=panel&&panel.previousElementSibling;if(toggle)toggle.textContent="＋ Entry Form खोलें";
 };
 
 
@@ -1039,6 +1070,7 @@ window.editExpense=id=>{
  $("receiptPreview").innerHTML=receiptData?`<button type="button" class="secondary" onclick="openReceipt('${escapeHtml(x.id)}')">वर्तमान Attachment देखें</button><button type="button" class="secondary" onclick="clearReceipt()">Attachment हटाएँ</button>`:"";
 
  $("formTitle").textContent=transactionType(x)==="income"?"Income बदलें":"खर्च बदलें";
+ toggleEntryPanel("expenseEntryFields",true);
  $("saveBtn").textContent="बदलाव सेव करें";
 
  window.scrollTo({top:0,behavior:"smooth"});
@@ -1380,6 +1412,15 @@ window.setFilter=mode=>{
 
 window.render=render;
 
+window.toggleEntryPanel=(id,open)=>{
+ const panel=$(id);if(!panel)return;
+ const shouldOpen=typeof open==="boolean"?open:panel.hidden;
+ panel.hidden=!shouldOpen;
+ const btn=panel.previousElementSibling;
+ if(btn&&btn.classList.contains("entry-toggle"))btn.textContent=shouldOpen?"− Entry Form बंद करें":"＋ Entry Form खोलें";
+ if(shouldOpen){panel.scrollIntoView({behavior:"smooth",block:"start"});}
+};
+
 function renderDashboard(){
  const current=monthKey(),[year,month]=current.split("-").map(Number);
  const prevDate=new Date(year,month-2,1),previous=prevDate.getFullYear()+"-"+String(prevDate.getMonth()+1).padStart(2,"0");
@@ -1610,7 +1651,7 @@ window.saveLoan=async()=>{
  if(!person||!date||!Number.isFinite(amount)||amount<=0||!Number.isFinite(paid)||paid<0||paid>amount){alert("व्यक्ति का नाम, सही कुल राशि और वापस हुई राशि भरें।");return;}
  const item={id:crypto.randomUUID(),recordType:"loan",loanDirection:$("loanDirection").value,person,amount,paidAmount:paid,date,dueDate:$("loanDue").value||"",note:$("loanNote").value.trim(),updatedAt:Date.now()};
  expenses.push(item);localSave();if(currentUser)markUpsert(item.id);
- $("loanPerson").value="";$("loanAmount").value="";$("loanPaid").value="0";$("loanDate").value=today();$("loanDue").value="";$("loanNote").value="";render();await syncPending();
+ $("loanPerson").value="";$("loanAmount").value="";$("loanPaid").value="0";$("loanDate").value=today();$("loanDue").value="";$("loanNote").value="";toggleEntryPanel("loanEntryFields",false);render();await syncPending();
 };
 window.updateLoanPaid=async id=>{
  const x=expenses.find(e=>e.id===id&&e.recordType==="loan");if(!x)return;const remaining=Math.max(0,Number(x.amount)-Number(x.paidAmount||0));
