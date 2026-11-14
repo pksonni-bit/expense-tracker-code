@@ -1419,21 +1419,23 @@ window.setFilter=mode=>{
 window.render=render;
 
 window.toggleEntryPanel=(id,open)=>{
- const panel=$(id);if(!panel)return;
  const panelIds=["expenseEntryFields","loanEntryFields"];
- const shouldOpen=typeof open==="boolean"?open:panel.hidden;
- // एक फॉर्म खोलते समय दूसरा अपने आप बंद करें।
- if(shouldOpen){
-  panelIds.filter(otherId=>otherId!==id).forEach(otherId=>{
-   const other=$(otherId);if(!other)return;
-   other.hidden=true;
-   const otherBtn=other.previousElementSibling;
-   if(otherBtn&&otherBtn.classList.contains("entry-toggle"))otherBtn.textContent=otherId==="loanEntryFields"?"＋ Udhaar Entry Form खोलें":"＋ Entry Form खोलें";
-  });
- }
- panel.hidden=!shouldOpen;
- const btn=panel.previousElementSibling;
- if(btn&&btn.classList.contains("entry-toggle"))btn.textContent=shouldOpen?"− Entry Form बंद करें":(id==="loanEntryFields"?"＋ Udhaar Entry Form खोलें":"＋ Entry Form खोलें");
+ if(!panelIds.includes(id))return;
+ const target=document.getElementById(id);
+ if(!target)return;
+ const shouldOpen=typeof open==="boolean"?open:target.hasAttribute("hidden");
+ // सभी फॉर्म की visibility और उनके labels एक ही जगह से नियंत्रित करें।
+ panelIds.forEach(panelId=>{
+  const current=document.getElementById(panelId);
+  if(!current)return;
+  const isOpen=panelId===id?shouldOpen:(shouldOpen?false:!current.hasAttribute("hidden"));
+  current.hidden=!isOpen;
+  const card=current.closest(".dashboard-entry-card")||current.parentElement;
+  const toggle=card&&card.querySelector(".entry-toggle");
+  if(toggle){
+   toggle.textContent=isOpen?"− Entry Form बंद करें":(panelId==="loanEntryFields"?"＋ Udhaar Entry Form खोलें":"＋ Entry Form खोलें");
+  }
+ });
 };
 
 function renderDashboard(){
