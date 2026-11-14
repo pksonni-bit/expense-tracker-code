@@ -1,0 +1,1654 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173c70">
+<meta name="description" content="व्यक्तिगत खर्च और मासिक बजट ट्रैकर">
+<link rel="manifest" href="manifest.json">
+<title>मेरा खर्चा</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f5f9;color:#182235;font-family:Arial,sans-serif}
+header{background:#173c70;color:white;padding:18px}
+header h2{margin:0 0 7px}
+main{max-width:760px;margin:auto;padding:14px}
+.card{background:white;padding:16px;border-radius:14px;margin-bottom:14px;box-shadow:0 2px 8px #0000000b}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#edf3ff;padding:13px;border-radius:12px}
+.stat small{color:#56657a}
+.stat b{display:block;font-size:22px;margin-top:7px;overflow-wrap:anywhere}
+input,select{width:100%;padding:12px;border:1px solid #d5dce7;border-radius:9px;margin:6px 0 12px;font-size:15px;background:white}
+button{border:0;border-radius:9px;padding:11px 14px;background:#1765bd;color:white;font-size:14px;cursor:pointer}
+button.secondary{background:#64748b}
+button.danger{background:#d94343}
+button:disabled{opacity:.5}
+label{font-size:14px;font-weight:bold}
+.expense{border-bottom:1px solid #eee;padding:12px 0;display:flex;justify-content:space-between;gap:8px}
+.expense:last-child{border:0}
+.actions{display:flex;gap:6px;align-items:center;margin-top:6px}
+.actions button{padding:7px 9px;font-size:12px}
+.muted{color:#68778b;font-size:13px}
+#status{font-size:13px;color:#dbeafe}
+.progress{height:10px;background:#e5e7eb;border-radius:10px;overflow:hidden}
+#bar{height:10px;background:#16a34a;width:0}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+nav button{flex:1;min-width:85px}
+nav button.active{background:#0f376a}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1}
+.field-help{font-size:12px;color:#64748b;margin:-7px 0 10px}canvas.chart{width:100%;height:250px;display:block}.chart-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#475569;margin-top:8px}.legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.tag{display:inline-block;background:#e8effb;color:#234b80;padding:3px 7px;border-radius:20px;font-size:11px;margin:3px 3px 0 0}.loan-item{border-bottom:1px solid #eee;padding:12px 0}.loan-item:last-child{border:0}.loan-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.receipt-link{display:inline-block;margin-top:5px;font-size:12px}.attachment-modal{position:fixed;inset:0;background:#000b;z-index:9999;display:none;align-items:center;justify-content:center;padding:12px}.attachment-box{background:#fff;width:min(900px,100%);height:min(92vh,900px);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}.attachment-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #e5e7eb}.attachment-view{flex:1;min-height:0;background:#eef2f7;display:flex;align-items:center;justify-content:center;overflow:auto}.attachment-view img{max-width:100%;max-height:100%;object-fit:contain}.attachment-view iframe{width:100%;height:100%;border:0;background:white}.attachment-actions{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #e5e7eb}.attachment-actions a{display:inline-block;text-decoration:none;background:#1765bd;color:white;padding:10px 14px;border-radius:8px;font-size:14px}@media(max-width:400px){
+ .stat b{font-size:18px}
+ .expense{font-size:14px}
+}
+
+/* ===== DASHBOARD UI REFRESH (layout only; app logic/data unchanged) ===== */
+:root{
+  --ink:#17243a;--muted:#64748b;--line:#e6ebf2;--blue:#1d5fae;
+  --surface:#ffffff;--soft:#f1f6fd;--shadow:0 5px 20px rgba(25,45,75,.07);
+}
+body{background:#f4f7fb;color:var(--ink);line-height:1.5}
+header{
+  padding:22px max(18px,calc((100% - 1120px)/2));
+  background:linear-gradient(120deg,#123665 0%,#1c5795 58%,#2876b9 100%);
+  box-shadow:0 3px 14px #102d501c
+}
+header h2{font-size:25px;letter-spacing:.1px}
+#status{display:inline-block;margin-top:3px;padding:4px 10px;border-radius:30px;background:#ffffff20;color:#eaf3ff}
+main{
+  width:min(1160px,100%);max-width:1160px;margin:22px auto;padding:0 18px 28px;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start
+}
+main>.card,main>.stats{margin:0;min-width:0}
+main>.card{
+  padding:20px;border:1px solid #edf0f5;border-radius:17px;
+  box-shadow:var(--shadow);background:var(--surface)
+}
+main>.card h3{margin:0 0 16px;font-size:18px;color:#173b67;line-height:1.35}
+main>.card h4{color:#294866;margin:18px 0 10px}
+main>.card:nth-child(1),
+main>.stats,
+main>.card:nth-child(3),
+main>.card:nth-child(4),
+main>.card:nth-child(5),
+main>.card:nth-child(6),
+main>.card:nth-child(9),
+main>.card:nth-child(12){grid-column:1/-1}
+main>.card:nth-child(7){grid-column:1}
+main>.card:nth-child(8){grid-column:2}
+main>.card:nth-child(10){grid-column:1}
+main>.card:nth-child(11){grid-column:2}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat{
+  min-width:0;padding:17px;border-radius:14px;
+  background:linear-gradient(145deg,#f0f6ff,#eaf2fc);
+  border:1px solid #e2ebf8
+}
+.stat small{display:block;font-size:12px;font-weight:600;color:#5c6d83;line-height:1.4}
+.stat b{font-size:clamp(19px,2.2vw,25px);font-weight:750;color:#183b67;letter-spacing:-.3px}
+#monthIncome{color:#16804a}
+#budgetText{font-weight:600}
+.progress{height:12px;border-radius:20px;background:#e9eef5}
+#bar{height:12px;border-radius:20px;transition:width .25s ease}
+input,select{
+  border:1px solid #d7e0ec;border-radius:10px;padding:12px 13px;
+  color:#1c2d43;outline:none;transition:border-color .15s,box-shadow .15s
+}
+input:focus,select:focus{border-color:#4b8bd0;box-shadow:0 0 0 3px #3985d51a}
+label{display:block;color:#334b68;margin-top:3px}
+button{border-radius:10px;font-weight:650;box-shadow:0 1px 2px #0b31501a;transition:filter .15s,transform .15s}
+button:hover{filter:brightness(1.06)}
+button:active{transform:translateY(1px)}
+button.secondary{background:#64748b}
+button.danger{background:#c83d48}
+nav{padding:4px;background:#f0f4f9;border-radius:12px}
+nav button{box-shadow:none}
+nav button.active{background:#173f70}
+.expense{padding:15px 2px;border-bottom:1px solid var(--line);align-items:center}
+.expense>div:first-child{min-width:0;overflow-wrap:anywhere}
+.expense>div:first-child>b{color:#233f62}
+.actions{flex-wrap:wrap;justify-content:flex-end}
+.actions button{white-space:nowrap}
+.loan-item{padding:15px 0;border-color:var(--line)}
+.loan-top>div:first-child{min-width:0;overflow-wrap:anywhere}
+.tag{background:#eaf2fd;color:#28588b;padding:4px 9px}
+canvas.chart{height:230px;max-width:100%}
+.chart-legend{justify-content:center}
+table th{color:#405875;background:#f4f7fb}
+table td,table th{border-bottom:1px solid #e9edf3}
+#receiptPreview{margin:8px 0}
+#categories p{margin:8px 0;padding:10px 12px;background:#f6f8fb;border-radius:9px}
+#recycleList:empty,#loanList:empty{display:none}
+.attachment-box{box-shadow:0 18px 60px #0004}
+@media(min-width:900px){
+  main>.stats{grid-template-columns:repeat(6,minmax(0,1fr))}
+  main>.stats .stat{padding:15px 12px}
+  main>.stats .stat b{font-size:20px}
+  main>.card:nth-child(7),main>.card:nth-child(8){align-self:stretch}
+}
+@media(max-width:760px){
+  main{display:flex;flex-direction:column;gap:13px;margin:14px auto;padding:0 12px 22px}
+  main>.card,main>.stats{width:100%}
+  main>.card{padding:16px;border-radius:14px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .stat{padding:13px}
+  .stat b{font-size:19px}
+  header{padding:17px 16px}
+  header h2{font-size:22px}
+  canvas.chart{height:210px}
+}
+@media(max-width:420px){
+  main{padding-left:9px;padding-right:9px}
+  main>.card{padding:14px}
+  .stat{padding:11px}
+  .stat b{font-size:17px}
+  .expense{align-items:flex-start;gap:6px}
+  .expense>div:last-child{min-width:92px!important}
+  .actions button{padding:7px 8px;font-size:11px}
+}
+
+</style>
+</head>
+
+<body>
+<header>
+ <h2>💰 मेरा खर्चा</h2>
+ <div id="status">लोकल सेविंग चालू</div>
+</header>
+
+<main>
+ <div class="card">
+  <div id="loginArea">
+   <button onclick="login()">Google से Login करें</button>
+  </div>
+  <div id="userArea" hidden>
+   <span id="userName"></span>
+   <button class="secondary" onclick="logout()">Logout</button>
+  </div>
+ </div>
+
+ <div class="stats">
+  <div class="stat"><small>आज का खर्च</small><b id="todayTotal">₹0</b></div>
+  <div class="stat"><small>इस महीने का खर्च</small><b id="monthTotal">₹0</b></div>
+  <div class="stat"><small>इस महीने की Income</small><b id="monthIncome">₹0</b></div>
+  <div class="stat"><small>कुल बचत / अंतर</small><b id="monthBalance">₹0</b></div>
+  <div class="stat"><small>मासिक बजट</small><b id="budgetShow">₹30,000</b></div>
+  <div class="stat"><small>बजट शेष</small><b id="remaining">₹30,000</b></div>
+ </div>
+
+ <div class="card">
+  <b>मासिक बजट</b>
+  <input id="budget" type="number" min="1" step="1" placeholder="मासिक बजट">
+  <button onclick="saveBudget()">बजट सेव करें</button>
+  <p class="muted" id="budgetText"></p>
+  <div class="progress"><div id="bar"></div></div>
+ </div>
+
+ <div class="card">
+  <h3 id="formTitle">➕ नया खर्च जोड़ें</h3>
+  <label>तारीख</label>
+  <input id="date" type="date">
+
+  <label>राशि (₹)</label>
+  <input id="amount" type="number" min="0.01" step="0.01" placeholder="जैसे 250">
+
+  <label>लेन-देन का प्रकार</label>
+  <select id="transactionType" onchange="updateTransactionForm()">
+   <option value="expense">खर्च (Debit)</option>
+   <option value="income">Income / Credit</option>
+  </select>
+
+  <label id="categoryLabel">खर्च की श्रेणी</label>
+  <select id="category">
+   <option>घर का खर्च</option>
+   <option>राशन</option>
+   <option>बिजली-पानी</option>
+   <option>पेट्रोल-डीजल</option>
+   <option>मेडिकल</option>
+   <option>बच्चों की फीस</option>
+   <option>यात्रा</option>
+   <option>शॉपिंग</option>
+   <option>मनोरंजन</option>
+   <option>बाहर खाना</option>
+   <option>SIP</option>
+   <option>Demat Transfer</option>
+   <option>Office Expenses</option>
+   <option>Salary</option>
+   <option>Business Income</option>
+   <option>Interest</option>
+   <option>Rent Received</option>
+   <option>Refund</option>
+   <option>अन्य</option>
+  </select>
+
+  <label>भुगतान का तरीका</label>
+  <select id="payment">
+   <option>Cash</option>
+   <option>UPI</option>
+   <option>Bank</option>
+   <option>Card</option>
+  </select>
+
+  <label>विवरण / Notes</label>
+  <input id="note" maxlength="300" placeholder="खर्च या जमा का विवरण">
+  <label>Tags (कॉमा लगाकर अलग करें)</label>
+  <input id="tags" maxlength="160" placeholder="जैसे घर, जरूरी, ऑफिस">
+  <label>Attachment: फोटो या PDF (वैकल्पिक)</label>
+  <input id="receiptFile" type="file" accept="image/*,application/pdf,.pdf" onchange="handleReceipt(event)">
+  <p class="field-help">फोटो अपने आप छोटी होगी। PDF अधिकतम 250 KB रखें। एक entry में एक attachment रखें।</p>
+  <div id="receiptPreview" class="muted"></div>
+
+  <div class="row">
+   <button onclick="saveExpense()" id="saveBtn">खर्च सेव करें</button>
+   <button class="secondary" onclick="resetForm()">रद्द करें</button>
+  </div>
+ </div>
+
+ <div class="card">
+  <h3>🤝 उधार / दिए हुए पैसे का हिसाब</h3>
+  <label>लेन-देन</label><select id="loanDirection"><option value="lent">मैंने पैसे दिए (वापस लेने हैं)</option><option value="borrowed">मैंने पैसे उधार लिए (वापस देने हैं)</option></select>
+  <label>व्यक्ति का नाम</label><input id="loanPerson" maxlength="80" placeholder="किसको दिए / किससे लिए">
+  <div class="row"><div style="flex:1"><label>कुल राशि (₹)</label><input id="loanAmount" type="number" min="0.01" step="0.01" placeholder="राशि"></div><div style="flex:1"><label>पहले से वापस (₹)</label><input id="loanPaid" type="number" min="0" step="0.01" value="0"></div></div>
+  <div class="row"><div style="flex:1"><label>तारीख</label><input id="loanDate" type="date"></div><div style="flex:1"><label>वापसी की तारीख</label><input id="loanDue" type="date"></div></div>
+  <label>विवरण / Notes</label><input id="loanNote" maxlength="200" placeholder="उधार का कारण या अन्य जानकारी">
+  <button onclick="saveLoan()">उधार की Entry सेव करें</button><div id="loanSummary" class="stats" style="margin-top:12px"></div><div id="loanList"></div>
+ </div>
+
+ <div class="card">
+  <h3>📋 खर्च का हिसाब</h3>
+  <nav>
+   <button id="filter-all" class="active" onclick="setFilter('all')">सभी</button>
+   <button id="filter-today" onclick="setFilter('today')">आज</button>
+   <button id="filter-month" onclick="setFilter('month')">इस महीने</button>
+  </nav>
+
+  <input id="search" placeholder="खर्च खोजें..." oninput="render()">
+  <div id="list"></div>
+
+  <div class="row" style="margin-top:12px">
+   <button class="secondary" onclick="exportCSV()">Excel के लिए CSV डाउनलोड</button>
+  </div>
+ </div>
+
+ <div class="card">
+  <h3>📅 महीने के अनुसार Income और खर्च</h3>
+  <label>महीना चुनें</label>
+  <input type="month" id="reportMonth" onchange="render()">
+  <div id="monthlyReport"></div>
+ </div>
+
+ <div class="card">
+  <h3>📈 Graph और Charts</h3>
+  <p class="muted">चुने हुए महीने और पिछले 11 महीनों की Income व खर्च की तुलना।</p>
+  <canvas id="trendChart" class="chart" width="720" height="260"></canvas>
+  <div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div>
+  <h4>💳 Payment Mode Analysis</h4><div id="paymentAnalysis"></div><canvas id="paymentChart" class="chart" width="720" height="230"></canvas>
+ </div>
+ <div class="card"><h3>🗓️ Yearly Financial Summary</h3><label>साल चुनें</label><select id="yearSelect" onchange="render()"></select><div id="yearSummary"></div><canvas id="yearChart" class="chart" width="720" height="270"></canvas></div>
+
+<div class="card">
+  <h3>🗑️ Recycle Bin</h3>
+  <p class="muted">यहाँ हटाए गए खर्च मिलेंगे। आप उन्हें वापस ला सकते हैं।</p>
+  <div id="recycleList"></div>
+</div>
+<div class="card">
+  <h3>💾 Backup और Restore</h3>
+  <p class="muted">अपने सभी खर्च और बजट की सुरक्षित कॉपी बनाएँ।</p>
+
+  <div class="row">
+    <button onclick="downloadBackup()">Backup डाउनलोड करें</button>
+    <button class="secondary" onclick="document.getElementById('backupFile').click()">Backup Restore करें</button>
+  </div>
+
+  <input
+    type="file"
+    id="backupFile"
+    accept=".json,application/json"
+    hidden
+    onchange="restoreBackup(event)"
+  >
+
+  <p class="muted">सलाह: समय-समय पर Backup फाइल अपने कंप्यूटर में सुरक्षित रखें।</p>
+</div>
+
+ <div class="card">
+  <h3>📊 इस महीने श्रेणी के अनुसार खर्च</h3>
+  <div id="categories"></div>
+ </div>
+</main>
+
+<div id="attachmentModal" class="attachment-modal" role="dialog" aria-modal="true" aria-label="Attachment viewer" onclick="if(event.target===this)closeAttachment()">
+ <div class="attachment-box">
+  <div class="attachment-head"><b>📎 Attachment</b><button type="button" class="danger" onclick="closeAttachment()">बंद करें ✕</button></div>
+  <div id="attachmentView" class="attachment-view"></div>
+  <div class="attachment-actions"><a id="attachmentDownload" href="#" download>डाउनलोड करें</a><button type="button" class="secondary" onclick="closeAttachment()">वापस जाएँ</button></div>
+ </div>
+</div>
+
+<script type="module">
+import {initializeApp}
+ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+ getAuth,GoogleAuthProvider,signInWithPopup,
+ signInWithRedirect,onAuthStateChanged,signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+ getFirestore,collection,doc,setDoc,getDoc,getDocs,
+ onSnapshot,runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+/* FIREBASE SETTINGS */
+
+const firebaseConfig={
+ apiKey:"AIzaSyAhjfMt9aljuUORGfGOTPZ8m_RWI13thAE",
+ authDomain:"my-investment-tracker-b9e41.firebaseapp.com",
+ projectId:"my-investment-tracker-b9e41",
+ storageBucket:"my-investment-tracker-b9e41.firebasestorage.app",
+ messagingSenderId:"518944527245",
+ appId:"1:518944527245:web:095a1f585934d1442d63c4"
+};
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const provider=new GoogleAuthProvider();
+
+
+/* APP VARIABLES */
+
+let expenses=[];
+let budgetValue=30000;
+let currentUser=null;
+let stopExpenses=null;
+let stopBudget=null;
+let editingId=null;
+let filterMode="all";
+let activeStorageKey="guest";
+let syncing=false;
+let deletedExpenses=[];
+let receiptData="";
+let receiptRemoved=false;
+const $=id=>document.getElementById(id);
+
+const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{
+ maximumFractionDigits:2
+});
+
+const today=()=>{
+ const d=new Date();
+ return [
+  d.getFullYear(),
+  String(d.getMonth()+1).padStart(2,"0"),
+  String(d.getDate()).padStart(2,"0")
+ ].join("-");
+};
+
+const monthKey=()=>today().slice(0,7);
+const transactionType=x=>x&&x.type==="income"?"income":"expense";
+
+const expenseKey=()=>`myExpenses_${activeStorageKey}`;
+const budgetKey=()=>`myBudget_${activeStorageKey}`;
+const pendingKey=()=>`expensePending_${activeStorageKey}`;
+
+
+/* LOCAL STORAGE */
+
+function readPending(){
+ try{
+  const p=JSON.parse(localStorage.getItem(pendingKey())||"{}");
+  return {
+   upserts:Array.isArray(p.upserts)?p.upserts:[],
+   deletes:Array.isArray(p.deletes)?p.deletes:[],
+   budget:!!p.budget
+  };
+ }catch{
+  return {upserts:[],deletes:[],budget:false};
+ }
+}
+
+function writePending(p){
+ localStorage.setItem(pendingKey(),JSON.stringify(p));
+}
+
+function localSave(){
+ localStorage.setItem(expenseKey(),JSON.stringify(expenses));
+ localStorage.setItem(budgetKey(),String(budgetValue));
+}
+
+function loadLocal(){
+ try{
+  const data=JSON.parse(localStorage.getItem(expenseKey())||"[]");
+  expenses=Array.isArray(data)?data:[];
+ }catch{
+  expenses=[];
+ }
+
+ try{
+  const deleted=JSON.parse(
+   localStorage.getItem(`deletedExpenses_${activeStorageKey}`)||"[]"
+  );
+  deletedExpenses=Array.isArray(deleted)?deleted:[];
+ }catch{
+  deletedExpenses=[];
+ }
+
+ budgetValue=Number(localStorage.getItem(budgetKey())||30000);
+
+ if(!Number.isFinite(budgetValue)||budgetValue<=0){
+  budgetValue=30000;
+ }
+}
+
+function status(s){
+ $("status").textContent=s;
+}
+
+function markUpsert(id){
+ const p=readPending();
+ p.deletes=p.deletes.filter(x=>x!==id);
+
+ if(!p.upserts.includes(id)){
+  p.upserts.push(id);
+ }
+
+ writePending(p);
+}
+
+function markDelete(id){
+ const p=readPending();
+ p.upserts=p.upserts.filter(x=>x!==id);
+
+ if(!p.deletes.includes(id)){
+  p.deletes.push(id);
+ }
+
+ writePending(p);
+}
+
+function markBudget(){
+ const p=readPending();
+ p.budget=true;
+ writePending(p);
+}
+
+function clearPendingUpsert(id){
+ const p=readPending();
+ p.upserts=p.upserts.filter(x=>x!==id);
+ writePending(p);
+}
+
+
+/* GOOGLE LOGIN */
+
+async function login(){
+ try{
+  await signInWithPopup(auth,provider);
+ }catch(e){
+  if(e.code==="auth/popup-blocked"||
+     e.code==="auth/popup-closed-by-user"){
+   try{
+    await signInWithRedirect(auth,provider);
+   }catch(err){
+    alert("Login समस्या: "+err.message);
+   }
+  }else{
+   alert("Login समस्या: "+e.message);
+  }
+ }
+}
+
+async function logout(){
+ await signOut(auth);
+}
+
+window.login=login;
+window.logout=logout;
+
+
+/* CLOUD SYNC */
+
+async function syncPending(){
+ if(!currentUser||!navigator.onLine||syncing)return;
+
+ syncing=true;
+ const uid=currentUser.uid;
+
+ try{
+  const p=readPending();
+  const expenseCollection=collection(db,"users",uid,"expenses");
+
+ 
+  /* DELETIONS: CLOUD MEIN POORI ENTRY KE SAATH TOMBSTONE SAVE */
+
+  for(const id of [...p.deletes]){
+   const deletedItem=deletedExpenses.find(x=>x.id===id);
+   const ref=doc(expenseCollection,id);
+
+   await setDoc(ref,{
+    ...(deletedItem||{id:id}),
+    id:id,
+    deleted:true,
+    permanentlyDeleted:false,
+    deletedAt:deletedItem?.deletedAt||Date.now(),
+    updatedAt:Date.now()
+   },{merge:true});
+
+   const q=readPending();
+   q.deletes=q.deletes.filter(x=>x!==id);
+   writePending(q);
+  }
+
+  /* NEW AND EDITED EXPENSES */
+
+  for(const id of [...readPending().upserts]){
+   if(readPending().deletes.includes(id))continue;
+
+   const item=expenses.find(x=>x.id===id);
+
+   if(!item){
+    clearPendingUpsert(id);
+    continue;
+   }
+
+   const ref=doc(expenseCollection,id);
+
+   const result=await runTransaction(db,async transaction=>{
+    const snap=await transaction.get(ref);
+
+    /* A deleted expense must never be restored. */
+
+    if(snap.exists()&&snap.data().deleted===true){
+     return false;
+    }
+
+    transaction.set(ref,item,{merge:true});
+    return true;
+   });
+
+   if(!result){
+    expenses=expenses.filter(x=>x.id!==id);
+   }
+
+   clearPendingUpsert(id);
+   localSave();
+   render();
+  }
+
+  /* BUDGET */
+
+  if(readPending().budget){
+   await setDoc(
+    doc(db,"users",uid,"settings","main"),
+    {budget:budgetValue},
+    {merge:true}
+   );
+
+   const q=readPending();
+   q.budget=false;
+   writePending(q);
+  }
+
+  if(currentUser&&currentUser.uid===uid){
+   status("☁️ Cloud Backup चालू");
+  }
+
+ }catch(e){
+  console.error("Sync error:",e);
+  if(currentUser&&currentUser.uid===uid){
+   status("Sync बाकी है: इंटरनेट मिलने पर फिर कोशिश होगी");
+  }
+ }finally{
+  syncing=false;
+ }
+}
+
+
+/* INITIAL CLOUD DATA LOAD */
+
+async function startCloud(user){
+ const uid=user.uid;
+ const ref=collection(db,"users",uid,"expenses");
+
+ const snap=await getDocs(ref);
+ const remote=snap.docs.map(d=>({
+  id:d.id,
+  ...d.data()
+ }));
+
+ const remoteMap=new Map(remote.map(x=>[x.id,x]));
+
+ /* LOAD CLOUD RECYCLE BIN */
+
+ const deletedMap=new Map(
+  deletedExpenses.map(x=>[x.id,x])
+ );
+
+ for(const item of remote){
+  if(item.deleted===true){
+   if(item.permanentlyDeleted===true){
+    deletedMap.delete(item.id);
+   }else if(item.category!==undefined||item.recordType==="loan"){
+    deletedMap.set(item.id,item);
+   }
+  }
+ }
+
+ deletedExpenses=[...deletedMap.values()];
+
+ localStorage.setItem(
+  `deletedExpenses_${activeStorageKey}`,
+  JSON.stringify(deletedExpenses)
+ );
+
+ /* MIGRATE GUEST ENTRIES */
+
+ let guestExpenses=[];
+
+ try{
+  guestExpenses=JSON.parse(
+   localStorage.getItem("myExpenses_guest")||"[]"
+  );
+  if(!Array.isArray(guestExpenses))guestExpenses=[];
+ }catch{
+  guestExpenses=[];
+ }
+
+ for(const item of guestExpenses){
+  const old=remoteMap.get(item.id);
+
+  if(!old||(
+   old.deleted!==true&&
+   Number(item.updatedAt||0)>Number(old.updatedAt||0)
+  )){
+   const exists=expenses.some(x=>x.id===item.id);
+
+   if(!exists){
+    expenses.push(item);
+   }
+
+   markUpsert(item.id);
+  }
+ }
+
+ /* BUILD LIST FROM CLOUD + PENDING LOCAL CHANGES */
+
+ const pending=readPending();
+ const finalMap=new Map();
+
+ for(const item of remote){
+  if(item.deleted===true)continue;
+  if(pending.deletes.includes(item.id))continue;
+
+  const local=expenses.find(x=>x.id===item.id);
+
+  if(pending.upserts.includes(item.id)&&local){
+   finalMap.set(item.id,local);
+  }else{
+   finalMap.set(item.id,item);
+  }
+ }
+
+ for(const id of pending.upserts){
+  const local=expenses.find(x=>x.id===id);
+  const remoteItem=remoteMap.get(id);
+
+  if(local&&(!remoteItem||remoteItem.deleted!==true)){
+   if(!pending.deletes.includes(id)){
+    finalMap.set(id,local);
+   }
+  }
+ }
+
+ expenses=[...finalMap.values()];
+ localSave();
+
+ /* REMOVE GUEST DATA AFTER QUEUING MIGRATION */
+
+ localStorage.removeItem("myExpenses_guest");
+
+ /* LOAD BUDGET */
+
+ const bRef=doc(db,"users",uid,"settings","main");
+ const bSnap=await getDoc(bRef);
+
+ if(readPending().budget){
+  // Keep pending local budget.
+ }else if(bSnap.exists()){
+  const remoteBudget=Number(bSnap.data().budget);
+  if(Number.isFinite(remoteBudget)&&remoteBudget>0){
+   budgetValue=remoteBudget;
+  }
+ }else{
+  const guestBudget=Number(
+   localStorage.getItem("myBudget_guest")||30000
+  );
+
+  if(guestBudget>0)budgetValue=guestBudget;
+
+  await setDoc(bRef,{budget:budgetValue},{merge:true});
+ }
+
+ localSave();
+ render();
+
+ /* LIVE EXPENSE LISTENER */
+
+ stopExpenses=onSnapshot(ref,s=>{
+  const remoteItems=s.docs.map(d=>({
+   id:d.id,
+   ...d.data()
+  }));
+
+  /* RECYCLE BIN KO CLOUD KE SAATH SYNC RAKHEIN */
+
+  const deletedMap=new Map(
+   deletedExpenses.map(x=>[x.id,x])
+  );
+
+  for(const item of remoteItems){
+   if(item.deleted===true){
+    if(item.permanentlyDeleted===true){
+     deletedMap.delete(item.id);
+    }else if(item.category!==undefined){
+     deletedMap.set(item.id,item);
+    }
+   }
+  }
+
+  deletedExpenses=[...deletedMap.values()];
+
+  localStorage.setItem(
+   `deletedExpenses_${activeStorageKey}`,
+   JSON.stringify(deletedExpenses)
+  );
+
+  const remoteMap=new Map(remoteItems.map(x=>[x.id,x]));
+  const pending=readPending();
+  const localMap=new Map(expenses.map(x=>[x.id,x]));
+  const merged=new Map();
+
+  for(const [id,item] of remoteMap){
+
+   /* DELETED RECORD: LOCAL ACTIVE LIST SE BHI HATAYEIN */
+
+   if(item.deleted===true){
+    localMap.delete(id);
+    clearPendingUpsert(id);
+
+    const q=readPending();
+    q.deletes=q.deletes.filter(x=>x!==id);
+    writePending(q);
+    continue;
+   }
+
+   if(pending.deletes.includes(id))continue;
+
+   const local=localMap.get(id);
+
+   if(pending.upserts.includes(id)&&local){
+    merged.set(id,local);
+   }else{
+    merged.set(id,item);
+   }
+  }
+
+  /* SIRF PENDING LOCAL NEW/EDITED ITEMS RAKHEIN */
+
+  for(const [id,item] of localMap){
+   if(!remoteMap.has(id)&&
+      pending.upserts.includes(id)&&
+      !pending.deletes.includes(id)){
+    merged.set(id,item);
+   }
+  }
+
+  expenses=[...merged.values()];
+  localSave();
+  render();
+  syncPending();
+
+ },e=>{
+  console.error(e);
+  status("Cloud Sync समस्या: "+e.message);
+ });
+
+ /* LIVE BUDGET LISTENER */
+
+ stopBudget=onSnapshot(bRef,s=>{
+  if(s.exists()&&!readPending().budget){
+   const n=Number(s.data().budget||30000);
+
+   if(Number.isFinite(n)&&n>0){
+    budgetValue=n;
+    localSave();
+    render();
+   }
+  }
+ },e=>{
+  console.error("Budget sync error:",e);
+ });
+
+ await syncPending();
+}
+
+
+/* LOGIN STATE */
+
+onAuthStateChanged(auth,async user=>{
+ currentUser=user;
+
+ if(stopExpenses){
+  stopExpenses();
+  stopExpenses=null;
+ }
+
+ if(stopBudget){
+  stopBudget();
+  stopBudget=null;
+ }
+
+ $("loginArea").hidden=!!user;
+ $("userArea").hidden=!user;
+
+ if(!user){
+  activeStorageKey="guest";
+  loadLocal();
+  render();
+  status("लोकल सेविंग चालू");
+  return;
+ }
+
+ activeStorageKey=user.uid;
+ loadLocal();
+
+ $("userName").textContent=
+  "नमस्ते, "+(user.displayName||user.email||"");
+
+ render();
+ status("Cloud से कनेक्ट हो रहा है...");
+
+ if(!navigator.onLine){
+  status("ऑफलाइन: खर्च इस डिवाइस में सेव होंगे");
+  return;
+ }
+
+ try{
+  await startCloud(user);
+ }catch(e){
+  console.error("Cloud connection error:",e);
+  status("Cloud उपलब्ध नहीं: लोकल सेविंग चालू");
+  render();
+ }
+});
+
+
+/* SAVE BUDGET */
+
+window.saveBudget=async()=>{
+ const n=Number($("budget").value);
+
+ if(!Number.isFinite(n)||n<=0){
+  return alert("सही बजट लिखें");
+ }
+
+ budgetValue=n;
+ localSave();
+
+ if(currentUser)markBudget();
+
+ render();
+ await syncPending();
+};
+
+
+/* TRANSACTION FORM LABELS */
+window.updateTransactionForm=()=>{
+ const isIncome=$("transactionType").value==="income";
+ $("categoryLabel").textContent=isIncome?"Income की श्रेणी":"खर्च की श्रेणी";
+ $("note").placeholder=isIncome?"पैसा कहाँ से मिला?":"किस चीज पर खर्च किया?";
+ if(!editingId){
+  $("formTitle").textContent=isIncome?"➕ नई Income / Credit जोड़ें":"➕ नया खर्च जोड़ें";
+  $("saveBtn").textContent=isIncome?"Income सेव करें":"खर्च सेव करें";
+ }
+};
+
+/* SAVE EXPENSE */
+
+window.saveExpense=async()=>{
+ const date=$("date").value;
+ const amount=Number($("amount").value);
+
+ if(!date||!Number.isFinite(amount)||amount<=0){
+  return alert("तारीख और सही राशि भरें");
+ }
+
+ const item={
+  id:editingId||crypto.randomUUID(),
+  date,
+  amount,
+  type:$("transactionType").value==="income"?"income":"expense",
+  category:$("category").value,
+  payment:$("payment").value,
+  note:$("note").value.trim(),
+  tags:$("tags").value.split(",").map(x=>x.trim()).filter(Boolean).slice(0,12),
+  receipt:receiptRemoved ? "" : (receiptData || (editingId ? (expenses.find(x=>x.id===editingId)?.receipt||"") : "")),
+  updatedAt:Date.now()
+ };
+
+ if(editingId){
+  expenses=expenses.map(x=>
+   x.id===editingId?item:x
+  );
+ }else{
+  expenses.push(item);
+ }
+
+ localSave();
+
+ if(currentUser){
+  markUpsert(item.id);
+ }
+
+ resetForm();
+ render();
+ await syncPending();
+};
+
+
+/* RESET FORM */
+
+window.resetForm=()=>{
+ editingId=null;
+ $("transactionType").value="expense";
+ updateTransactionForm();
+ $("date").value=today();
+ $("amount").value="";
+ $("note").value="";
+ $("tags").value="";
+ receiptData="";
+ receiptRemoved=false;
+ $("receiptFile").value="";
+ $("receiptPreview").textContent="";
+ $("formTitle").textContent="➕ नया खर्च जोड़ें";
+ $("saveBtn").textContent="खर्च सेव करें";
+};
+
+
+/* EDIT EXPENSE */
+
+window.editExpense=id=>{
+ const x=expenses.find(e=>e.id===id);
+ if(!x)return;
+
+ editingId=id;
+ $("transactionType").value=transactionType(x);
+ updateTransactionForm();
+ $("date").value=x.date;
+ $("amount").value=x.amount;
+ $("category").value=x.category;
+ $("payment").value=x.payment;
+ $("note").value=x.note||"";
+ $("tags").value=Array.isArray(x.tags)?x.tags.join(", "):String(x.tags||"");
+ receiptData=x.receipt||"";
+ receiptRemoved=false;
+ $("receiptPreview").innerHTML=receiptData?`<button type="button" class="secondary" onclick="openReceipt('${escapeHtml(x.id)}')">वर्तमान Attachment देखें</button><button type="button" class="secondary" onclick="clearReceipt()">Attachment हटाएँ</button>`:"";
+
+ $("formTitle").textContent=transactionType(x)==="income"?"Income बदलें":"खर्च बदलें";
+ $("saveBtn").textContent="बदलाव सेव करें";
+
+ window.scrollTo({top:0,behavior:"smooth"});
+};
+
+
+/* DELETE EXPENSE: MOVE TO RECYCLE BIN */
+
+window.removeExpense=async id=>{
+ if(!confirm("क्या यह खर्च Recycle Bin में भेजना चाहते हैं?"))return;
+
+ const item=expenses.find(x=>x.id===id);
+ if(!item)return;
+
+ const deletedItem={
+  ...item,
+  deletedAt:Date.now()
+ };
+
+ deletedExpenses=deletedExpenses.filter(x=>x.id!==id);
+ deletedExpenses.push(deletedItem);
+
+ expenses=expenses.filter(x=>x.id!==id);
+
+ localStorage.setItem(
+  `deletedExpenses_${activeStorageKey}`,
+  JSON.stringify(deletedExpenses)
+ );
+
+ localSave();
+
+ markDelete(id);
+
+ if(editingId===id)resetForm();
+
+ render();
+ renderRecycleBin();
+
+ if(currentUser){
+  await syncPending();
+ }
+};
+
+/* BACKUP DOWNLOAD */
+
+window.downloadBackup = () => {
+  const backup = {
+    app: "MeraKharcha",
+    version: 2,
+    createdAt: new Date().toISOString(),
+    expenses: expenses,
+    deletedExpenses: deletedExpenses,
+    budget: budgetValue
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "MeraKharcha-Backup-" + today() + ".json";
+  a.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+
+/* BACKUP RESTORE */
+
+window.restoreBackup = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    if (!currentUser || !navigator.onLine) {
+      alert("Restore करने से पहले Google Login और इंटरनेट चालू करें।");
+      return;
+    }
+
+    const backup = JSON.parse(await file.text());
+
+    if (
+      backup.app !== "MeraKharcha" ||
+      !Array.isArray(backup.expenses) ||
+      !Number.isFinite(Number(backup.budget)) ||
+      Number(backup.budget) <= 0
+    ) {
+      throw new Error("यह सही मेरा खर्चा Backup फाइल नहीं है।");
+    }
+
+    const backupDeleted=Array.isArray(backup.deletedExpenses)
+      ? backup.deletedExpenses : [];
+
+    if (!confirm(
+      "Backup में " + backup.expenses.length +
+      " सक्रिय खर्च और " + backupDeleted.length +
+      " Recycle Bin की entries हैं। इन्हें मौजूदा डेटा के साथ जोड़ना है?"
+    )) {
+      return;
+    }
+
+    const uid = currentUser.uid;
+    const expenseCollection = collection(db, "users", uid, "expenses");
+
+    const remoteSnap = await getDocs(expenseCollection);
+    const remoteMap = new Map(
+      remoteSnap.docs.map(d => [d.id, d.data()])
+    );
+
+    const localMap = new Map(expenses.map(x => [x.id, x]));
+    let added = 0;
+
+    for (const oldItem of backup.expenses) {
+      if (
+        !oldItem ||
+        typeof oldItem !== "object" ||
+        !oldItem.id ||
+        !oldItem.date ||
+        !Number.isFinite(Number(oldItem.amount)) ||
+        Number(oldItem.amount) <= 0
+      ) continue;
+
+      const remoteItem = remoteMap.get(oldItem.id);
+
+      // पहले से मौजूद खर्च को दोबारा नहीं जोड़ना।
+      if (remoteItem && remoteItem.deleted !== true) continue;
+
+      // Deleted ID को दोबारा इस्तेमाल नहीं करना।
+      const newId = remoteItem?.deleted === true
+        ? crypto.randomUUID()
+        : oldItem.id;
+
+      if (localMap.has(newId)) continue;
+
+      const item = {
+        ...oldItem,
+        id: newId,
+        date: String(oldItem.date),
+        amount: Number(oldItem.amount),
+        type: oldItem.type==="income"?"income":"expense",
+        category: String(oldItem.category || "अन्य"),
+        payment: String(oldItem.payment || "Cash"),
+        note: String(oldItem.note || ""),
+        tags: Array.isArray(oldItem.tags)?oldItem.tags:[],
+        updatedAt: Date.now()
+      };
+
+      expenses.push(item);
+      localMap.set(newId, item);
+      markUpsert(newId);
+      added++;
+    }
+
+    /* BACKUP SE RECYCLE BIN ENTRIES BHI IMPORT KAREIN */
+
+    const deletedIds=new Set(deletedExpenses.map(x=>x.id));
+
+    for(const oldItem of backupDeleted){
+      if(
+        !oldItem ||
+        typeof oldItem!=="object" ||
+        !oldItem.date ||
+        !Number.isFinite(Number(oldItem.amount)) ||
+        Number(oldItem.amount)<=0
+      )continue;
+
+      const newId=crypto.randomUUID();
+      const deletedItem={
+        ...oldItem,
+        id:newId,
+        amount:Number(oldItem.amount),
+        deletedAt:Number(oldItem.deletedAt||Date.now())
+      };
+
+      delete deletedItem.deleted;
+      delete deletedItem.permanentlyDeleted;
+
+      if(deletedIds.has(newId))continue;
+
+      deletedExpenses.push(deletedItem);
+      deletedIds.add(newId);
+      markDelete(newId);
+    }
+
+    localStorage.setItem(
+      `deletedExpenses_${activeStorageKey}`,
+      JSON.stringify(deletedExpenses)
+    );
+
+    budgetValue = Number(backup.budget);
+    markBudget();
+
+    localSave();
+    render();
+
+    await syncPending();
+
+    alert(
+      "Restore पूरा हुआ!\n" +
+      "नए खर्च जोड़े गए: " + added +
+      "\nमासिक बजट भी Restore कर दिया गया।"
+    );
+
+  } catch (error) {
+    console.error("Restore error:", error);
+    alert("Restore नहीं हो पाया: " + error.message);
+  } finally {
+    event.target.value = "";
+  }
+};
+/* RECYCLE BIN DISPLAY */
+
+function renderRecycleBin(){
+ const box=$("recycleList");
+
+ if(!deletedExpenses.length){
+  box.innerHTML="<p class='muted'>Recycle Bin खाली है।</p>";
+  return;
+ }
+
+ box.innerHTML=deletedExpenses.map(x=>`
+  <div class="expense">
+   <div>
+    <b>${x.recordType==="loan"?"उधार · "+escapeHtml(x.person||""):escapeHtml(x.category||"अन्य")}</b>
+    <div class="muted">
+     ${escapeHtml(x.date||"")} · ${escapeHtml(x.payment||"")}
+    </div>
+    <div class="muted">${escapeHtml(x.note||"")}</div>
+    <b>${money(x.amount)}</b>
+   </div>
+   <div class="actions">
+    <button onclick="restoreExpense('${escapeHtml(x.id)}')">वापस लाएँ</button>
+    <button class="danger" onclick="permanentDelete('${escapeHtml(x.id)}')">हमेशा हटाएँ</button>
+   </div>
+  </div>
+ `).join("");
+}
+/* RESTORE DELETED EXPENSE
+   Purane deleted ID ko reuse nahi karte; nayi ID banate hain.
+*/
+
+window.restoreExpense=async id=>{
+ const item=deletedExpenses.find(x=>x.id===id);
+ if(!item)return;
+
+ const newId=crypto.randomUUID();
+ const restored={
+  ...item,
+  id:newId,
+  updatedAt:Date.now()
+ };
+
+ delete restored.deletedAt;
+ delete restored.deleted;
+ delete restored.permanentlyDeleted;
+
+ expenses.push(restored);
+ deletedExpenses=deletedExpenses.filter(x=>x.id!==id);
+
+ localStorage.setItem(
+  `deletedExpenses_${activeStorageKey}`,
+  JSON.stringify(deletedExpenses)
+ );
+
+ localSave();
+
+ if(currentUser){
+  markUpsert(newId);
+  await syncPending();
+ }
+
+ render();
+};
+
+
+/* PERMANENT DELETE
+   Cloud mein permanent tombstone rakha jata hai taaki purana device
+   deleted entry ko dobara upload na kar sake.
+*/
+
+window.permanentDelete=async id=>{
+ if(!confirm("यह खर्च Recycle Bin से हमेशा के लिए हट जाएगा। क्या जारी रखें?"))return;
+
+ if(currentUser&&!navigator.onLine){
+  alert("हमेशा हटाने के लिए इंटरनेट चालू करें।");
+  return;
+ }
+
+ const item=deletedExpenses.find(x=>x.id===id);
+ if(!item)return;
+
+ if(currentUser){
+  try{
+   await setDoc(
+    doc(db,"users",currentUser.uid,"expenses",id),
+    {
+     ...item,
+     id:id,
+     deleted:true,
+     permanentlyDeleted:true,
+     updatedAt:Date.now()
+    },
+    {merge:true}
+   );
+  }catch(e){
+   alert("हटाया नहीं जा सका: "+e.message);
+   return;
+  }
+ }
+
+ deletedExpenses=deletedExpenses.filter(x=>x.id!==id);
+
+ localStorage.setItem(
+  `deletedExpenses_${activeStorageKey}`,
+  JSON.stringify(deletedExpenses)
+ );
+
+ render();
+};
+
+/* FILTERS */
+
+window.setFilter=mode=>{
+ filterMode=mode;
+
+ ["all","today","month"].forEach(x=>{
+  $("filter-"+x).classList.toggle("active",x===mode);
+ });
+
+ render();
+};
+
+
+/* DISPLAY */
+
+window.render=render;
+
+function render(){
+ const t=today();
+ const m=monthKey();
+
+ const normalItems=expenses.filter(x=>x.recordType!=="loan");
+ const todaySum=normalItems
+  .filter(x=>x.date===t&&transactionType(x)==="expense")
+  .reduce((a,x)=>a+Number(x.amount||0),0);
+
+ const monthItems=normalItems.filter(x=>String(x.date||"").startsWith(m));
+ const monthExpenses=monthItems.filter(x=>transactionType(x)==="expense");
+ const monthIncomes=monthItems.filter(x=>transactionType(x)==="income");
+ const total=monthExpenses.reduce((a,x)=>a+Number(x.amount||0),0);
+ const incomeTotal=monthIncomes.reduce((a,x)=>a+Number(x.amount||0),0);
+ const left=budgetValue-total;
+
+ $("todayTotal").textContent=money(todaySum);
+ $("monthTotal").textContent=money(total);
+ $("monthIncome").textContent=money(incomeTotal);
+ $("monthBalance").textContent=money(incomeTotal-total);
+ $("monthBalance").style.color=incomeTotal-total<0?"#dc2626":"#15803d";
+ $("budgetShow").textContent=money(budgetValue);
+ $("remaining").textContent=money(left);
+
+ $("remaining").style.color=
+  left<0?"#dc2626":"#15803d";
+
+ $("budget").value=budgetValue;
+
+ const pct=budgetValue>0?total/budgetValue*100:0;
+
+ $("budgetText").textContent=
+  "बजट का "+Math.round(pct)+"% खर्च हुआ";
+
+ $("bar").style.width=
+  Math.min(100,Math.max(0,pct))+"%";
+
+ $("bar").style.background=
+  pct>100?"#dc2626":"#16a34a";
+
+ let rows=normalItems.filter(x=>{
+  if(filterMode==="today"&&x.date!==t)return false;
+
+  if(filterMode==="month"&&
+     !String(x.date||"").startsWith(m))return false;
+
+  return true;
+ });
+
+ const q=$("search").value.toLowerCase().trim();
+
+ rows=rows.filter(x=>(
+  String(x.category||"")+" "+
+  String(x.note||"")+" "+
+  String(x.payment||"")+" "+(Array.isArray(x.tags)?x.tags.join(" "):String(x.tags||""))
+ ).toLowerCase().includes(q));
+
+ rows.sort((a,b)=>
+  (b.date||"").localeCompare(a.date||"")||
+  Number(b.updatedAt||0)-Number(a.updatedAt||0)
+ );
+
+ $("list").innerHTML=rows.length?rows.map(x=>`
+  <div class="expense">
+   <div>
+    <b>${transactionType(x)==="income"?"⬆️ CREDIT · ":"⬇️ DEBIT · "}${escapeHtml(x.category||"अन्य")}</b>
+    <div class="muted">
+     ${escapeHtml(x.date||"")} · ${escapeHtml(x.payment||"")}
+    </div>
+    <div class="muted">${escapeHtml(x.note||"")}</div>
+    ${(Array.isArray(x.tags)?x.tags:[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}
+    ${x.receipt?`<div><button type="button" class="secondary" onclick="openReceipt('${escapeHtml(x.id)}')">📎 Attachment देखें</button></div>`:""}
+   </div>
+
+   <div style="text-align:right;min-width:105px">
+    <b style="color:${transactionType(x)==="income"?"#15803d":"#182235"}">${transactionType(x)==="income"?"+":"−"}${money(x.amount)}</b>
+    <div class="actions">
+     <button onclick="editExpense('${escapeHtml(x.id)}')">Edit</button>
+     <button class="danger" onclick="removeExpense('${escapeHtml(x.id)}')">हटाएँ</button>
+    </div>
+   </div>
+  </div>
+ `).join(""):"<p class='muted'>अभी कोई खर्च दर्ज नहीं है।</p>";
+
+ const sums={};
+
+ monthExpenses.forEach(x=>{
+  const cat=x.category||"अन्य";
+  sums[cat]=(sums[cat]||0)+Number(x.amount||0);
+ });
+
+ $("categories").innerHTML=
+  Object.entries(sums)
+   .sort((a,b)=>b[1]-a[1])
+   .map(([k,v])=>
+    `<p>${escapeHtml(k)} <b style="float:right">${money(v)}</b></p>`
+   ).join("")||"अभी कोई खर्च नहीं";
+
+ renderMonthlyReport();
+ renderRecycleBin();
+ renderLoans();
+ renderCharts();
+ renderYearSummary();
+}
+
+function renderMonthlyReport(){
+ const field=$("reportMonth");
+ if(!field.value)field.value=monthKey();
+ const selected=field.value||monthKey();
+ const [yy,mm]=selected.split("-").map(Number);
+ const prevDate=new Date(yy,mm-2,1);
+ const previous=prevDate.getFullYear()+"-"+String(prevDate.getMonth()+1).padStart(2,"0");
+ const sum=(month,type)=>expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(month)&&transactionType(x)===type).reduce((a,x)=>a+Number(x.amount||0),0);
+ const exp=sum(selected,"expense"),inc=sum(selected,"income");
+ const prevExp=sum(previous,"expense"),prevInc=sum(previous,"income");
+ const diff=(now,before)=>now-before;
+ const pct=(now,before)=>before===0?(now===0?"0%":"नया"):(Math.abs((now-before)/before*100).toFixed(1)+"%");
+ const trend=(now,before)=>now>before?"बढ़ा":now<before?"घटा":"कोई बदलाव नहीं";
+ const allMonths=[...new Set(expenses.filter(x=>x.recordType!=="loan").map(x=>String(x.date||"").slice(0,7)).filter(x=>/^\d{4}-\d{2}$/.test(x)))].sort().reverse();
+ if(!allMonths.includes(selected))allMonths.unshift(selected);
+ const monthRows=allMonths.map(month=>{
+  const e=sum(month,"expense"),i=sum(month,"income");
+  return `<tr><td>${month}</td><td style="text-align:right">${money(e)}</td><td style="text-align:right;color:#15803d">${money(i)}</td><td style="text-align:right">${money(i-e)}</td></tr>`;
+ }).join("");
+ $("monthlyReport").innerHTML=`
+  <div class="stats" style="margin-top:10px">
+   <div class="stat"><small>${selected} · कुल खर्च</small><b>${money(exp)}</b></div>
+   <div class="stat"><small>${selected} · कुल Income</small><b style="color:#15803d">${money(inc)}</b></div>
+   <div class="stat"><small>महीने का शुद्ध अंतर</small><b style="color:${inc-exp<0?"#dc2626":"#15803d"}">${money(inc-exp)}</b></div>
+   <div class="stat"><small>पिछले महीने की तुलना</small><b>${previous}</b></div>
+  </div>
+  <h4>पिछले महीने से तुलना (${previous})</h4>
+  <p>खर्च: <b>${money(prevExp)}</b> → <b>${money(exp)}</b><br><span class="muted">${trend(exp,prevExp)} ${money(Math.abs(diff(exp,prevExp)))} (${pct(exp,prevExp)})</span></p>
+  <p>Income: <b>${money(prevInc)}</b> → <b>${money(inc)}</b><br><span class="muted">${trend(inc,prevInc)} ${money(Math.abs(diff(inc,prevInc)))} (${pct(inc,prevInc)})</span></p>
+  <p>पिछले महीने की बचत/अंतर: <b>${money(prevInc-prevExp)}</b><br>इस महीने की बचत/अंतर: <b>${money(inc-exp)}</b></p>
+  <h4>सभी महीनों का हिसाब</h4>
+  <div style="overflow-x:auto">
+   <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr><th style="text-align:left;padding:7px">महीना</th><th style="text-align:right;padding:7px">खर्च</th><th style="text-align:right;padding:7px">Income</th><th style="text-align:right;padding:7px">अंतर</th></tr></thead>
+    <tbody>${monthRows||""}</tbody>
+   </table>
+  </div>
+ `;
+}
+
+
+
+/* ATTACHMENT HANDLING: IMAGE OR PDF, STORED WITH THE TRANSACTION */
+window.handleReceipt=async event=>{
+ const file=event.target.files&&event.target.files[0];if(!file)return;
+ try{
+  if(file.type.startsWith("image/")){
+   if(file.size>12*1024*1024)throw new Error("फोटो 12 MB से छोटी चुनें।");
+   const raw=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
+   const img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error("फोटो पढ़ी नहीं जा सकी।"));im.src=raw;});
+   const scale=Math.min(1,1200/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));
+   const ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);
+   let q=.68;receiptData=c.toDataURL("image/jpeg",q);while(receiptData.length>380000&&q>.32){q-=.06;receiptData=c.toDataURL("image/jpeg",q);}
+   if(receiptData.length>450000)throw new Error("फोटो छोटी नहीं हो पाई। कृपया कम आकार की फोटो चुनें।");
+   $("receiptPreview").innerHTML=`<img src="${receiptData}" alt="Attachment preview" style="max-width:150px;max-height:110px;border-radius:8px;display:block;margin:5px 0"><span class="muted">फोटो तैयार है</span><button type="button" class="secondary" onclick="clearReceipt()">Attachment हटाएँ</button>`;
+  }else if(file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf")){
+   if(file.size>250*1024)throw new Error("PDF अधिकतम 250 KB की चुनें, ताकि cloud sync में सेव हो सके।");
+   receiptData=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
+   if(receiptData.length>360000)throw new Error("PDF का आकार ज्यादा है। कृपया छोटी PDF चुनें।");
+   $("receiptPreview").innerHTML=`<div style="padding:9px;background:#f1f5f9;border-radius:8px;margin:5px 0">📄 <b>${escapeHtml(file.name)}</b><div class="muted">PDF तैयार है · ${(file.size/1024).toFixed(0)} KB</div></div><button type="button" class="secondary" onclick="clearReceipt()">Attachment हटाएँ</button>`;
+  }else{
+   throw new Error("केवल फोटो (JPG, PNG आदि) या PDF फाइल चुनें।");
+  }
+  receiptRemoved=false;
+ }catch(e){receiptData="";event.target.value="";$("receiptPreview").textContent="";alert("Attachment तैयार नहीं हुआ: "+e.message);}
+};
+window.clearReceipt=()=>{receiptData="";receiptRemoved=true;$("receiptFile").value="";$("receiptPreview").textContent="Attachment हटाया गया है।";};
+
+/* OPEN ATTACHMENT INSIDE THE APP: PREVENTS APP NAVIGATION/CLOSING */
+window.openReceipt=id=>{
+ const item=expenses.find(x=>x.id===id);if(!item||!item.receipt)return alert("Attachment नहीं मिला।");
+ const modal=$("attachmentModal"),view=$("attachmentView"),download=$("attachmentDownload");
+ const data=item.receipt;
+ const isPdf=data.startsWith("data:application/pdf")||data.startsWith("data:application/octet-stream");
+ view.innerHTML=isPdf?`<iframe title="PDF Attachment" src="${data}#toolbar=1&navpanes=0"></iframe>`:`<img alt="Receipt attachment" src="${data}">`;
+ download.href=data;download.download=isPdf?"receipt.pdf":"receipt.jpg";modal.style.display="flex";document.body.style.overflow="hidden";
+};
+window.closeAttachment=()=>{$("attachmentModal").style.display="none";$("attachmentView").innerHTML="";document.body.style.overflow="";};
+
+/* LENT / BORROWED TRACKER: SAME USER-SCOPED FIRESTORE COLLECTION */
+window.saveLoan=async()=>{
+ const person=$("loanPerson").value.trim(),amount=Number($("loanAmount").value),paid=Number($("loanPaid").value||0),date=$("loanDate").value;
+ if(!person||!date||!Number.isFinite(amount)||amount<=0||!Number.isFinite(paid)||paid<0||paid>amount){alert("व्यक्ति का नाम, सही कुल राशि और वापस हुई राशि भरें।");return;}
+ const item={id:crypto.randomUUID(),recordType:"loan",loanDirection:$("loanDirection").value,person,amount,paidAmount:paid,date,dueDate:$("loanDue").value||"",note:$("loanNote").value.trim(),updatedAt:Date.now()};
+ expenses.push(item);localSave();if(currentUser)markUpsert(item.id);
+ $("loanPerson").value="";$("loanAmount").value="";$("loanPaid").value="0";$("loanDate").value=today();$("loanDue").value="";$("loanNote").value="";render();await syncPending();
+};
+window.updateLoanPaid=async id=>{
+ const x=expenses.find(e=>e.id===id&&e.recordType==="loan");if(!x)return;const remaining=Math.max(0,Number(x.amount)-Number(x.paidAmount||0));
+ const v=prompt(`अब तक वापस हुई राशि: ${money(x.paidAmount||0)}\nबाकी: ${money(remaining)}\nअब कितनी और राशि वापस हुई?`,"0");if(v===null)return;const n=Number(v);
+ if(!Number.isFinite(n)||n<0||n>remaining){alert("सही राशि भरें।");return;}x.paidAmount=Number(x.paidAmount||0)+n;x.updatedAt=Date.now();localSave();if(currentUser)markUpsert(id);render();await syncPending();
+};
+function renderLoans(){
+ const loans=expenses.filter(x=>x.recordType==="loan");const lent=loans.filter(x=>x.loanDirection==="lent").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);const borrowed=loans.filter(x=>x.loanDirection==="borrowed").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);
+ $("loanSummary").innerHTML=`<div class="stat"><small>वापस लेने हैं</small><b>${money(lent)}</b></div><div class="stat"><small>वापस देने हैं</small><b>${money(borrowed)}</b></div>`;
+ $("loanList").innerHTML=loans.length?loans.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(x=>{const bal=Math.max(0,Number(x.amount)-Number(x.paidAmount||0));return `<div class="loan-item"><div class="loan-top"><div><b>${x.loanDirection==="lent"?"🟢 दिए हुए पैसे":"🟠 उधार लिए पैसे"} · ${escapeHtml(x.person||"")}</b><div class="muted">${escapeHtml(x.date||"")}${x.dueDate?" · वापसी: "+escapeHtml(x.dueDate):""}</div><div class="muted">कुल ${money(x.amount)} · वापस ${money(x.paidAmount||0)} · <b>बाकी ${money(bal)}</b></div><div class="muted">${escapeHtml(x.note||"")}</div></div><div class="actions"><button onclick="updateLoanPaid('${escapeHtml(x.id)}')">वापसी दर्ज करें</button><button class="danger" onclick="removeExpense('${escapeHtml(x.id)}')">हटाएँ</button></div></div></div>`;}).join(""):"<p class='muted'>अभी कोई उधार दर्ज नहीं है।</p>";
+}
+function drawGroupedBars(id,labels,series){
+ const c=$(id);if(!c)return;const ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const max=Math.max(1,...series.flatMap(z=>z.values));const left=48,top=16,bottom=34,ph=h-top-bottom,pw=w-left-10;ctx.strokeStyle="#dbe2ec";ctx.fillStyle="#64748b";ctx.font="11px Arial";ctx.textAlign="right";
+ for(let i=0;i<=4;i++){const y=top+ph*i/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-8,y);ctx.stroke();ctx.fillText(Math.round(max*(4-i)/4).toLocaleString("en-IN"),left-6,y+4);}
+ const group=pw/Math.max(1,labels.length),bw=Math.min(18,group/(series.length+1));labels.forEach((label,i)=>{series.forEach((z,j)=>{const v=z.values[i]||0,bh=v/max*(ph-4),x=left+i*group+group/2-(series.length*bw)/2+j*bw;ctx.fillStyle=z.color;ctx.fillRect(x,top+ph-bh,Math.max(3,bw-2),bh);});ctx.fillStyle="#475569";ctx.textAlign="center";ctx.fillText(label,left+i*group+group/2,h-10);});
+}
+function drawDonut(id,items){
+ const c=$(id);if(!c)return;const ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const total=items.reduce((a,x)=>a+x.value,0);if(!total){ctx.fillStyle="#64748b";ctx.font="14px Arial";ctx.textAlign="center";ctx.fillText("इस महीने कोई भुगतान डेटा नहीं",w/2,h/2);return;}
+ const colors=["#2563eb","#f97316","#16a34a","#9333ea","#0891b2","#e11d48"];let a=-Math.PI/2;const cx=w/2,cy=h/2,r=78,inner=43;items.forEach((x,i)=>{const b=a+x.value/total*Math.PI*2;ctx.beginPath();ctx.arc(cx,cy,r,a,b);ctx.arc(cx,cy,inner,b,a,true);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a=b;});ctx.fillStyle="#182235";ctx.font="bold 14px Arial";ctx.textAlign="center";ctx.fillText(money(total),cx,cy+5);
+}
+function renderCharts(){
+ const chosen=$("reportMonth").value||monthKey();const [y,m]=chosen.split("-").map(Number),labels=[],income=[],expense=[];
+ for(let i=11;i>=0;i--){const d=new Date(y,m-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");labels.push(String(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(-2));const a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key));income.push(a.filter(x=>transactionType(x)==="income").reduce((t,x)=>t+Number(x.amount||0),0));expense.push(a.filter(x=>transactionType(x)==="expense").reduce((t,x)=>t+Number(x.amount||0),0));}
+ drawGroupedBars("trendChart",labels,[{values:income,color:"#2563eb"},{values:expense,color:"#f97316"}]);
+ const rows=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(chosen)&&transactionType(x)==="expense"),sums={};rows.forEach(x=>{const k=x.payment||"Other";sums[k]=(sums[k]||0)+Number(x.amount||0);});const modes=Object.entries(sums).map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value),colors=["#2563eb","#f97316","#16a34a","#9333ea","#0891b2","#e11d48"];
+ $("paymentAnalysis").innerHTML=modes.length?modes.map((x,i)=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${escapeHtml(x.name)}</b><b>${money(x.value)}</b></div><div class="progress"><div style="height:10px;width:${Math.min(100,x.value/Math.max(1,...modes.map(z=>z.value))*100)}%;background:${colors[i%colors.length]}"></div></div></div>`).join(""):"<p class='muted'>इस महीने कोई खर्च दर्ज नहीं है।</p>";drawDonut("paymentChart",modes);
+}
+function renderYearSummary(){
+ const years=[...new Set(expenses.filter(x=>x.recordType!=="loan").map(x=>String(x.date||"").slice(0,4)).filter(x=>/^\d{4}$/.test(x)))].sort().reverse(),current=String(new Date().getFullYear());if(!years.includes(current))years.unshift(current);const sel=$("yearSelect"),old=sel.value;sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");sel.value=years.includes(old)?old:current;const year=sel.value||current;let ti=0,te=0,inc=[],exp=[],labels=[],rows=[];
+ for(let m=1;m<=12;m++){const key=year+"-"+String(m).padStart(2,"0"),a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key)),i=a.filter(x=>transactionType(x)==="income").reduce((t,x)=>t+Number(x.amount||0),0),e=a.filter(x=>transactionType(x)==="expense").reduce((t,x)=>t+Number(x.amount||0),0);ti+=i;te+=e;inc.push(i);exp.push(e);labels.push(["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]);if(i||e)rows.push(`<tr><td>${key}</td><td style="text-align:right">${money(i)}</td><td style="text-align:right">${money(e)}</td><td style="text-align:right">${money(i-e)}</td></tr>`);}
+ $("yearSummary").innerHTML=`<div class="stats"><div class="stat"><small>${year} की Income</small><b style="color:#15803d">${money(ti)}</b></div><div class="stat"><small>${year} का खर्च</small><b>${money(te)}</b></div><div class="stat"><small>साल की बचत / अंतर</small><b style="color:${ti-te<0?"#dc2626":"#15803d"}">${money(ti-te)}</b></div><div class="stat"><small>कुल दर्ज महीने</small><b>${rows.length}</b></div></div><h4>Month-wise Summary</h4><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:7px">महीना</th><th style="text-align:right;padding:7px">Income</th><th style="text-align:right;padding:7px">खर्च</th><th style="text-align:right;padding:7px">अंतर</th></tr></thead><tbody>${rows.join("")||"<tr><td colspan='4'>इस साल कोई entry नहीं है।</td></tr>"}</tbody></table></div>`;drawGroupedBars("yearChart",labels,[{values:inc,color:"#2563eb"},{values:exp,color:"#f97316"}]);
+}
+window.addEventListener("resize",()=>{if($("trendChart"))renderCharts();if($("yearChart"))renderYearSummary();});
+
+/* HTML SECURITY */
+
+function escapeHtml(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+ }[c]));
+}
+
+
+/* CSV EXPORT */
+
+window.exportCSV=()=>{
+ const header=["तारीख","प्रकार","राशि","श्रेणी","भुगतान","विवरण","Tags"];
+
+ const lines=[
+  header,
+  ...expenses.filter(x=>x.recordType!=="loan").map(x=>[
+   x.date,
+   transactionType(x)==="income"?"Income / Credit":"Expense / Debit",
+   x.amount,
+   x.category,
+   x.payment,
+   x.note||"",
+   Array.isArray(x.tags)?x.tags.join(" | "):""
+  ])
+ ].map(row=>
+  row.map(v=>
+   '"'+String(v??"").replace(/"/g,'""')+'"'
+  ).join(",")
+ );
+
+ const blob=new Blob(
+  ["\uFEFF"+lines.join("\r\n")],
+  {type:"text/csv;charset=utf-8"}
+ );
+
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+
+ a.href=url;
+ a.download="my-expenses.csv";
+ a.click();
+
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+
+
+/* INTERNET CONNECTION */
+
+window.addEventListener("online",()=>{
+ if(currentUser){
+  // Reopen cloud listeners if the app was offline.
+  window.location.reload();
+ }else{
+  status("इंटरनेट उपलब्ध · लोकल सेविंग चालू");
+ }
+});
+
+window.addEventListener("offline",()=>{
+ status("ऑफलाइन · खर्च इस डिवाइस में सेव होंगे");
+});
+
+
+/* APP START */
+
+$("date").value=today();
+$("loanDate").value=today();
+$("reportMonth").value=monthKey();
+updateTransactionForm();
+loadLocal();
+render();
+
+if("serviceWorker" in navigator){
+ window.addEventListener("load",()=>{
+  navigator.serviceWorker.register("./sw.js").catch(e=>{
+   console.error("Service worker:",e);
+  });
+ });
+}
+
+</script>
+</body>
+</html>
