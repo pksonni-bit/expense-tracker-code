@@ -891,7 +891,9 @@ window.updateTransactionForm=()=>{
  const isIncome=$("transactionType").value==="income";
  const category=$("category");
  const previous=category.value;
+ // खर्च की श्रेणियाँ: किराया, फल और सब्जी शामिल हैं; Income-only विकल्प यहाँ नहीं हैं।
  const expenseCategories=["घर का खर्च","राशन","बिजली-पानी","पेट्रोल-डीजल","मेडिकल","बच्चों की फीस","यात्रा","शॉपिंग","मनोरंजन","बाहर खाना","SIP","Demat Transfer","Office Expenses","किराया","फल","सब्जी","Salary","अन्य"];
+ // Income की अलग श्रेणियाँ यथावत रखी गई हैं।
  const incomeCategories=["Salary","Business Income","Interest","Rent Received","Refund","अन्य"];
  const categories=isIncome?incomeCategories:expenseCategories;
  category.innerHTML=categories.map(name=>'<option value="'+name.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+'">'+name+'</option>').join("");
