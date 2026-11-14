@@ -1394,6 +1394,32 @@ window.restoreExpense=async id=>{
  const item=deletedExpenses.find(x=>x.id===id);
  if(!item)return;
 
+ if(currentUser&&!navigator.onLine){
+  alert("Restore sync करने के लिए इंटरनेट चालू करें।");
+  return;
+ }
+
+ /* Purane cloud tombstone ko permanently cleared mark karein,
+    taaki doosre devices Recycle Bin mein use dobara na dikhayein. */
+ if(currentUser){
+  try{
+   await setDoc(
+    doc(db,"users",currentUser.uid,"expenses",id),
+    {
+     ...item,
+     id:id,
+     deleted:true,
+     permanentlyDeleted:true,
+     updatedAt:Date.now()
+    },
+    {merge:true}
+   );
+  }catch(e){
+   alert("Restore sync नहीं हो सका: "+e.message);
+   return;
+  }
+ }
+
  const newId=crypto.randomUUID();
  const restored={
   ...item,
