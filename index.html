@@ -185,6 +185,12 @@ table td,table th{border-bottom:1px solid #e9edf3}
 @media(max-width:600px){.dashboard-shell{padding:15px;border-radius:16px}.dashboard-heading{align-items:flex-start;flex-direction:column}.dashboard-heading h3{font-size:20px}.dashboard-grid{grid-template-columns:1fr}.dash-panel{padding:14px}.dashboard-month{align-self:flex-start}}
 
 
+/* ENTRY FORMS OPEN DIRECTLY UNDER DASHBOARD QUICK ACTIONS */
+.dashboard-entry-card{margin:0 0 10px!important;padding:13px!important;border:1px solid #dfe9f5!important;border-radius:13px!important;box-shadow:none!important}
+.dashboard-entry-card h3{font-size:16px!important;margin:0 0 8px!important}
+.dashboard-entry-card .entry-fields{margin-top:9px;padding-top:9px}
+.dashboard-entry-card input,.dashboard-entry-card select{margin-bottom:9px;padding:10px 11px}
+.dashboard-entry-card .entry-toggle{margin:0}
 /* ===== COMPACT DASHBOARD + COLLAPSIBLE ENTRY FORMS ===== */
 .entry-quick-actions{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 13px}
 .entry-quick-actions button{flex:1;min-width:170px;padding:12px 14px}
@@ -1418,7 +1424,6 @@ window.toggleEntryPanel=(id,open)=>{
  panel.hidden=!shouldOpen;
  const btn=panel.previousElementSibling;
  if(btn&&btn.classList.contains("entry-toggle"))btn.textContent=shouldOpen?"− Entry Form बंद करें":"＋ Entry Form खोलें";
- if(shouldOpen){panel.scrollIntoView({behavior:"smooth",block:"start"});}
 };
 
 function renderDashboard(){
@@ -1752,6 +1757,19 @@ window.addEventListener("offline",()=>{
  status("ऑफलाइन · खर्च इस डिवाइस में सेव होंगे");
 });
 
+
+/* PLACE ENTRY FORMS INSIDE THE DASHBOARD: QUICK ACTIONS OPEN THEM IN PLACE */
+(()=>{
+ const shell=document.querySelector(".dashboard-shell");
+ const quick=document.querySelector(".entry-quick-actions");
+ const expenseCard=$("formTitle")?.closest(".card");
+ const loanCard=$("loanDirection")?.closest(".card");
+ if(shell&&quick&&expenseCard&&loanCard){
+  quick.after(expenseCard,loanCard);
+  expenseCard.classList.add("dashboard-entry-card");
+  loanCard.classList.add("dashboard-entry-card");
+ }
+})();
 
 /* APP START */
 
