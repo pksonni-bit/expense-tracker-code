@@ -931,7 +931,7 @@ async function startCloud(user){
    if(item.deleted===true){
     if(item.permanentlyDeleted===true){
      deletedMap.delete(item.id);
-    }else if(item.category!==undefined){
+    }else if(item.category!==undefined||item.recordType==="loan"){
      deletedMap.set(item.id,item);
     }
    }
@@ -1261,145 +1261,100 @@ window.downloadBackup = () => {
 
 /* BACKUP RESTORE */
 
+function validateBackupDate(value){
+  if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const d=new Date(value+"T00:00:00");
+  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;
+}
+function validateBackupRecord(item,label){
+  if(!item||typeof item!=="object"||Array.isArray(item))throw new Error(label+" में गलत entry format है।");
+  if(typeof item.id!=="string"||!item.id.trim()||item.id.length>128)throw new Error(label+" में Entry ID गलत है।");
+  if(!validateBackupDate(item.date))throw new Error(label+" में तारीख गलत है: "+item.id);
+  const amount=Number(item.amount);
+  if(!Number.isFinite(amount)||amount<=0||amount>1000000000)throw new Error(label+" में राशि गलत है: "+item.id);
+  if(item.note!==undefined&&(typeof item.note!=="string"||item.note.length>5000))throw new Error(label+" में Note बहुत बड़ा या गलत है।");
+  if(item.receipt!==undefined&&(typeof item.receipt!=="string"||item.receipt.length>500000))throw new Error(label+" में Attachment गलत या बहुत बड़ा है।");
+  if(item.tags!==undefined&&(!Array.isArray(item.tags)||item.tags.length>30||item.tags.some(t=>typeof t!=="string"||t.length>60)))throw new Error(label+" में Tags गलत हैं।");
+  if(item.recordType==="loan"){
+    const paid=Number(item.paidAmount||0);
+    if(typeof item.person!=="string"||!item.person.trim()||item.person.length>160||
+       !["lent","borrowed"].includes(item.loanDirection)||
+       !Number.isFinite(paid)||paid<0||paid>amount)
+      throw new Error(label+" में Udhaar entry गलत है: "+item.id);
+    return {...item,amount,paidAmount:paid,person:item.person.trim(),date:item.date,note:String(item.note||"")};
+  }
+  if(item.type!==undefined&&!["income","expense"].includes(item.type))throw new Error(label+" में लेन-देन का प्रकार गलत है: "+item.id);
+  if(item.category!==undefined&&(typeof item.category!=="string"||item.category.length>120))throw new Error(label+" में Category गलत है।");
+  if(item.payment!==undefined&&(typeof item.payment!=="string"||item.payment.length>80))throw new Error(label+" में Payment Mode गलत है।");
+  return {...item,amount,date:item.date,type:item.type==="income"?"income":"expense",category:String(item.category||"अन्य"),payment:String(item.payment||"Cash"),note:String(item.note||""),tags:Array.isArray(item.tags)?item.tags:[]};
+}
+
+/* BACKUP RESTORE */
 window.restoreBackup = async event => {
-  const file = event.target.files[0];
-  if (!file) return;
+  const file=event.target.files&&event.target.files[0];
+  if(!file)return;
+  try{
+    if(!currentUser||!navigator.onLine)throw new Error("Restore करने से पहले Google Login और इंटरनेट चालू करें।");
+    if(file.size>10*1024*1024)throw new Error("Backup फाइल 10 MB से बड़ी है।");
+    const backup=JSON.parse(await file.text());
+    if(!backup||typeof backup!=="object"||Array.isArray(backup)||backup.app!=="MeraKharcha"||backup.version!==2)
+      throw new Error("यह सही या supported मेरा खर्चा Backup (Version 2) नहीं है।");
+    if(!Array.isArray(backup.expenses)||!Array.isArray(backup.deletedExpenses||[]))
+      throw new Error("Backup में खर्च या Recycle Bin की सूची सही नहीं है।");
+    const budget=Number(backup.budget);
+    if(!Number.isFinite(budget)||budget<=0||budget>1000000000)
+      throw new Error("Backup में Budget की राशि गलत है।");
+    const backupDeleted=backup.deletedExpenses||[];
+    if(backup.expenses.length>10000||backupDeleted.length>10000||backup.expenses.length+backupDeleted.length>15000)
+      throw new Error("Backup में बहुत ज्यादा entries हैं। अधिकतम 15,000 entries Restore हो सकती हैं।");
+    const seen=new Set();
+    const validActive=backup.expenses.map((x,i)=>{
+      const item=validateBackupRecord(x,"खर्च #"+(i+1));
+      if(seen.has(item.id))throw new Error("Backup में duplicate Entry ID मिली: "+item.id);
+      seen.add(item.id);return item;
+    });
+    const validDeleted=backupDeleted.map((x,i)=>{
+      const item=validateBackupRecord(x,"Recycle Bin #"+(i+1));
+      if(seen.has(item.id))throw new Error("Backup में duplicate Entry ID मिली: "+item.id);
+      seen.add(item.id);return item;
+    });
+    if(!confirm("Backup में "+validActive.length+" सक्रिय entries और "+validDeleted.length+" Recycle Bin entries हैं। Budget सहित इन्हें मौजूदा डेटा के साथ जोड़ना है?"))return;
 
-  try {
-    if (!currentUser || !navigator.onLine) {
-      alert("Restore करने से पहले Google Login और इंटरनेट चालू करें।");
-      return;
+    const uid=currentUser.uid;
+    const expenseCollection=collection(db,"users",uid,"expenses");
+    const remoteSnap=await getDocs(expenseCollection);
+    const remoteMap=new Map(remoteSnap.docs.map(d=>[d.id,d.data()]));
+    const localMap=new Map(expenses.map(x=>[x.id,x]));
+    let added=0,loansAdded=0,deletedAdded=0;
+
+    for(const oldItem of validActive){
+      const remoteItem=remoteMap.get(oldItem.id);
+      if(remoteItem&&remoteItem.deleted!==true)continue;
+      const newId=remoteItem?.deleted===true?crypto.randomUUID():oldItem.id;
+      if(localMap.has(newId))continue;
+      const item={...oldItem,id:newId,updatedAt:Date.now()};
+      expenses.push(item);localMap.set(newId,item);markUpsert(newId);
+      if(item.recordType==="loan")loansAdded++;else added++;
     }
-
-    const backup = JSON.parse(await file.text());
-
-    if (
-      backup.app !== "MeraKharcha" ||
-      !Array.isArray(backup.expenses) ||
-      !Number.isFinite(Number(backup.budget)) ||
-      Number(backup.budget) <= 0
-    ) {
-      throw new Error("यह सही मेरा खर्चा Backup फाइल नहीं है।");
-    }
-
-    const backupDeleted=Array.isArray(backup.deletedExpenses)
-      ? backup.deletedExpenses : [];
-
-    if (!confirm(
-      "Backup में " + backup.expenses.length +
-      " सक्रिय खर्च और " + backupDeleted.length +
-      " Recycle Bin की entries हैं। इन्हें मौजूदा डेटा के साथ जोड़ना है?"
-    )) {
-      return;
-    }
-
-    const uid = currentUser.uid;
-    const expenseCollection = collection(db, "users", uid, "expenses");
-
-    const remoteSnap = await getDocs(expenseCollection);
-    const remoteMap = new Map(
-      remoteSnap.docs.map(d => [d.id, d.data()])
-    );
-
-    const localMap = new Map(expenses.map(x => [x.id, x]));
-    let added = 0;
-
-    for (const oldItem of backup.expenses) {
-      if (
-        !oldItem ||
-        typeof oldItem !== "object" ||
-        !oldItem.id ||
-        !oldItem.date ||
-        !Number.isFinite(Number(oldItem.amount)) ||
-        Number(oldItem.amount) <= 0
-      ) continue;
-
-      const remoteItem = remoteMap.get(oldItem.id);
-
-      // पहले से मौजूद खर्च को दोबारा नहीं जोड़ना।
-      if (remoteItem && remoteItem.deleted !== true) continue;
-
-      // Deleted ID को दोबारा इस्तेमाल नहीं करना।
-      const newId = remoteItem?.deleted === true
-        ? crypto.randomUUID()
-        : oldItem.id;
-
-      if (localMap.has(newId)) continue;
-
-      const item = {
-        ...oldItem,
-        id: newId,
-        date: String(oldItem.date),
-        amount: Number(oldItem.amount),
-        type: oldItem.type==="income"?"income":"expense",
-        category: String(oldItem.category || "अन्य"),
-        payment: String(oldItem.payment || "Cash"),
-        note: String(oldItem.note || ""),
-        tags: Array.isArray(oldItem.tags)?oldItem.tags:[],
-        updatedAt: Date.now()
-      };
-
-      expenses.push(item);
-      localMap.set(newId, item);
-      markUpsert(newId);
-      added++;
-    }
-
-    /* BACKUP SE RECYCLE BIN ENTRIES BHI IMPORT KAREIN */
 
     const deletedIds=new Set(deletedExpenses.map(x=>x.id));
-
-    for(const oldItem of backupDeleted){
-      if(
-        !oldItem ||
-        typeof oldItem!=="object" ||
-        !oldItem.date ||
-        !Number.isFinite(Number(oldItem.amount)) ||
-        Number(oldItem.amount)<=0
-      )continue;
-
+    for(const oldItem of validDeleted){
       const newId=crypto.randomUUID();
-      const deletedItem={
-        ...oldItem,
-        id:newId,
-        amount:Number(oldItem.amount),
-        deletedAt:Number(oldItem.deletedAt||Date.now())
-      };
-
-      delete deletedItem.deleted;
-      delete deletedItem.permanentlyDeleted;
-
       if(deletedIds.has(newId))continue;
-
-      deletedExpenses.push(deletedItem);
-      deletedIds.add(newId);
-      markDelete(newId);
+      const deletedItem={...oldItem,id:newId,deletedAt:Number(oldItem.deletedAt)||Date.now()};
+      delete deletedItem.deleted;delete deletedItem.permanentlyDeleted;
+      deletedExpenses.push(deletedItem);deletedIds.add(newId);markDelete(newId);deletedAdded++;
     }
 
-    localStorage.setItem(
-      `deletedExpenses_${activeStorageKey}`,
-      JSON.stringify(deletedExpenses)
-    );
-
-    budgetValue = Number(backup.budget);
-    markBudget();
-
-    localSave();
-    render();
-
+    localStorage.setItem("deletedExpenses_"+activeStorageKey,JSON.stringify(deletedExpenses));
+    budgetValue=budget;markBudget();localSave();render();
     await syncPending();
-
-    alert(
-      "Restore पूरा हुआ!\n" +
-      "नए खर्च जोड़े गए: " + added +
-      "\nमासिक बजट भी Restore कर दिया गया।"
-    );
-
-  } catch (error) {
-    console.error("Restore error:", error);
-    alert("Restore नहीं हो पाया: " + error.message);
-  } finally {
-    event.target.value = "";
+    alert("Restore पूरा हुआ!\nनए खर्च/Income: "+added+"\nUdhaar entries: "+loansAdded+"\nRecycle Bin entries: "+deletedAdded+"\nमासिक Budget भी Restore कर दिया गया।");
+  }catch(error){
+    console.error("Restore error:",error);
+    alert("Restore नहीं हो पाया: "+error.message+"\nमौजूदा डेटा में कोई बदलाव नहीं किया गया।");
+  }finally{
+    if(event.target)event.target.value="";
   }
 };
 /* RECYCLE BIN DISPLAY */
