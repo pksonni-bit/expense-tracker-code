@@ -201,27 +201,7 @@ table td,table th{border-bottom:1px solid #e9edf3}
   </select>
 
   <label id="categoryLabel">खर्च की श्रेणी</label>
-  <select id="category">
-   <option>घर का खर्च</option>
-   <option>राशन</option>
-   <option>बिजली-पानी</option>
-   <option>पेट्रोल-डीजल</option>
-   <option>मेडिकल</option>
-   <option>बच्चों की फीस</option>
-   <option>यात्रा</option>
-   <option>शॉपिंग</option>
-   <option>मनोरंजन</option>
-   <option>बाहर खाना</option>
-   <option>SIP</option>
-   <option>Demat Transfer</option>
-   <option>Office Expenses</option>
-   <option>Salary</option>
-   <option>Business Income</option>
-   <option>Interest</option>
-   <option>Rent Received</option>
-   <option>Refund</option>
-   <option>अन्य</option>
-  </select>
+  <select id="category"></select>
 
   <label>भुगतान का तरीका</label>
   <select id="payment">
@@ -909,6 +889,13 @@ window.saveBudget=async()=>{
 /* TRANSACTION FORM LABELS */
 window.updateTransactionForm=()=>{
  const isIncome=$("transactionType").value==="income";
+ const category=$("category");
+ const previous=category.value;
+ const expenseCategories=["घर का खर्च","राशन","बिजली-पानी","पेट्रोल-डीजल","मेडिकल","बच्चों की फीस","यात्रा","शॉपिंग","मनोरंजन","बाहर खाना","SIP","Demat Transfer","Office Expenses","किराया","फल","सब्जी","Salary","अन्य"];
+ const incomeCategories=["Salary","Business Income","Interest","Rent Received","Refund","अन्य"];
+ const categories=isIncome?incomeCategories:expenseCategories;
+ category.innerHTML=categories.map(name=>'<option value="'+name.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+'">'+name+'</option>').join("");
+ if(categories.includes(previous))category.value=previous;
  $("categoryLabel").textContent=isIncome?"Income की श्रेणी":"खर्च की श्रेणी";
  $("note").placeholder=isIncome?"पैसा कहाँ से मिला?":"किस चीज पर खर्च किया?";
  if(!editingId){
