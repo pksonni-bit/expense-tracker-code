@@ -353,6 +353,130 @@ body.entry-modal-open{overflow:hidden}
 
 /* Keep the inactive entry form hidden inside the shared popup. */
 .entry-modal-content .entry-fields[hidden]{display:none!important}
+
+/* ===== RESPONSIVE DASHBOARD POLISH 2026-11 ===== */
+:root{
+ --mk-ink:#172b46;--mk-muted:#718198;--mk-line:#e5ecf4;
+ --mk-blue:#205f9f;--mk-blue-dark:#123b68;--mk-bg:#f3f6fb;
+ --mk-card-shadow:0 8px 24px rgba(24,54,88,.065);
+}
+html{scroll-behavior:smooth}
+body{background:radial-gradient(ellipse at 12% 0%,#eaf2fc 0,transparent 34%),var(--mk-bg);color:var(--mk-ink)}
+header{position:relative;isolation:isolate;padding:20px max(18px,calc((100% - 1240px)/2));background:linear-gradient(115deg,#102f55 0%,#174c80 58%,#2677b5 100%);overflow:hidden}
+header:after{content:"";position:absolute;z-index:-1;width:270px;height:270px;right:8%;top:-190px;border:1px solid #ffffff25;border-radius:50%;box-shadow:0 0 0 28px #ffffff09,0 0 0 58px #ffffff07}
+header h2{font-size:24px;letter-spacing:.2px}
+#status{font-size:12px;padding:5px 11px;border:1px solid #ffffff25;border-radius:30px;background:#ffffff18}
+main{width:min(1280px,100%);max-width:1280px;margin:22px auto;padding:0 22px 34px;gap:16px;align-items:stretch}
+main>.card{border:1px solid var(--mk-line);border-radius:16px;background:#fff;box-shadow:var(--mk-card-shadow);padding:19px;min-width:0}
+main>.card h3{font-size:17px;color:#1d456f;margin-bottom:12px}
+main>.card:has(#loginArea),main>.card:has(#userArea){grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:11px 15px;border-radius:13px}
+main>.card:has(#budget){grid-column:1/-1;display:grid;grid-template-columns:minmax(140px,.55fr) minmax(180px,1fr) auto;align-items:center;gap:14px}
+main>.card:has(#budget)>b{font-size:14px;color:#385675}
+main>.card:has(#budget)>input{margin:0;min-width:0}
+main>.card:has(#budget)>button{white-space:nowrap}
+main>.card:has(#list){grid-column:span 1}
+main>.card:has(#monthlyReport){grid-column:span 1}
+main>.card:has(#trendChart){grid-column:1/-1}
+main>.card:has(#yearSummary){grid-column:span 1}
+main>.card:has(#recycleList){grid-column:span 1}
+main>.card:has(#backupFile){grid-column:1/-1}
+main>.loan-overview-card{grid-column:1/-1}
+main>.stats{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+main>.stats .stat{position:relative;overflow:hidden;min-height:104px;padding:17px 18px;border:1px solid #e0eaf6;border-radius:15px;background:linear-gradient(145deg,#fff 0%,#f0f6ff 100%);box-shadow:0 4px 14px rgba(31,70,111,.045)}
+main>.stats .stat:after{content:"";position:absolute;width:72px;height:72px;right:-28px;bottom:-35px;border-radius:50%;background:#dceafa80}
+main>.stats .stat small{font-size:12px;color:#687d96}
+main>.stats .stat b{position:relative;z-index:1;font-size:clamp(19px,2vw,26px);margin-top:8px;letter-spacing:-.35px}
+#monthIncome{color:#16804a!important}
+#monthBalance{color:#1d5d99}
+.dashboard-shell{padding:23px;border-radius:20px;border:1px solid #dce8f6;background:linear-gradient(145deg,#f9fcff 0%,#edf4fc 100%);box-shadow:0 10px 28px rgba(24,62,105,.075)}
+.dashboard-heading{align-items:center;margin-bottom:17px}
+.dashboard-heading h3{font-size:23px;letter-spacing:-.3px}
+.dashboard-heading p{font-size:12px;color:#72839a}
+.dashboard-kicker{font-size:10px;letter-spacing:1.5px}
+.dashboard-month{padding:8px 13px;border:1px solid #d4e3f5;background:#fff;color:#285b8e}
+.entry-quick-actions{gap:10px;margin-bottom:14px}
+.entry-quick-actions button{min-height:43px;border-radius:11px;font-size:13px;font-weight:700}
+.entry-quick-actions button:first-child{background:linear-gradient(120deg,#1765ad,#287fca)}
+.entry-quick-actions button.secondary{background:#e8eff8;color:#24527f;border:1px solid #d6e2f0}
+.dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.dash-panel{padding:16px;border:1px solid #e5edf6;border-radius:15px;box-shadow:0 4px 13px rgba(30,60,92,.045);transition:transform .16s ease,box-shadow .16s ease}
+.dash-panel:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(30,60,92,.085)}
+.dashboard-grid>.dash-panel:nth-child(1){grid-column:span 2}
+.dashboard-grid>.dash-panel:nth-child(2){grid-column:span 1}
+.dashboard-grid>.dash-panel:nth-child(3){grid-column:span 2}
+.dashboard-grid>.dash-panel:nth-child(4){grid-column:span 1}
+.dashboard-grid>.dash-panel:nth-child(5){grid-column:span 1}
+.dashboard-grid>.dash-panel:nth-child(6){grid-column:span 1}
+.dash-panel-title{font-size:13px;color:#284d74}
+.dash-panel-title small{font-size:10px}
+.dash-budget{background:linear-gradient(145deg,#fff,#f0f7ff)}
+.dash-budget-values b,.dash-loan-values b{font-size:clamp(19px,1.8vw,25px)}
+.dash-track{height:11px}
+.dash-recent-row,.dash-compare-row{font-size:12px;padding:9px 0}
+.dash-meter-label{font-size:12px}
+.loan-overview-card{background:linear-gradient(145deg,#fff,#fbfdff)!important}
+.loan-overview-card .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+nav{padding:5px;background:#f1f5fa;border:1px solid #e7edf5}
+nav button{min-height:36px}
+input,select{min-height:40px}
+canvas.chart{height:250px}
+#trendChart{margin-top:5px}
+#paymentChart{max-height:240px}
+#categories p{border:1px solid #edf1f6;background:#f8fafd!important}
+@media(min-width:1100px){
+ main{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ main>.stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:900px){
+ main{padding:0 15px 26px;gap:12px}
+ main>.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .dashboard-grid>.dash-panel:nth-child(n){grid-column:span 1}
+ .dashboard-grid>.dash-panel:nth-child(1),.dashboard-grid>.dash-panel:nth-child(3){grid-column:span 2}
+}
+@media(max-width:650px){
+ header{padding:15px 14px}
+ header h2{font-size:20px}
+ main{display:flex;flex-direction:column;gap:11px;margin:12px auto;padding:0 10px 22px}
+ main>.card,main>.stats,.dashboard-shell{width:100%}
+ main>.card{padding:14px;border-radius:13px}
+ main>.card:has(#loginArea),main>.card:has(#userArea){justify-content:space-between;flex-wrap:wrap}
+ main>.card:has(#budget){display:grid;grid-template-columns:1fr auto;gap:8px 10px}
+ main>.card:has(#budget)>b{grid-column:1/-1}
+ main>.card:has(#budget)>input{grid-column:1}
+ main>.card:has(#budget)>button{grid-column:2}
+ main>.stats{gap:8px}
+ main>.stats .stat{min-height:88px;padding:12px;border-radius:12px}
+ main>.stats .stat b{font-size:19px;margin-top:6px}
+ .dashboard-shell{padding:14px;border-radius:16px}
+ .dashboard-heading{gap:8px;margin-bottom:12px}
+ .dashboard-heading h3{font-size:18px}
+ .dashboard-heading p{font-size:11px}
+ .dashboard-month{font-size:10px}
+ .entry-quick-actions{gap:7px;margin-bottom:10px}
+ .entry-quick-actions button{min-height:42px;padding:9px 8px;font-size:11px}
+ .dashboard-grid{grid-template-columns:1fr;gap:9px}
+ .dashboard-grid>.dash-panel:nth-child(n){grid-column:1/-1}
+ .dash-panel{padding:13px;border-radius:12px}
+ .dash-panel:hover{transform:none}
+ .dash-panel-title{font-size:12px}
+ .dash-budget-values b,.dash-loan-values b{font-size:19px}
+ canvas.chart{height:205px}
+ .loan-overview-card .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:380px){
+ main{padding-left:8px;padding-right:8px}
+ main>.stats .stat{padding:10px}
+ main>.stats .stat b{font-size:17px}
+ .dashboard-heading{flex-direction:column;align-items:flex-start}
+ .dashboard-month{align-self:flex-start}
+ .entry-quick-actions{flex-direction:column}
+ .entry-quick-actions button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
+
 </style>
 </head>
 
