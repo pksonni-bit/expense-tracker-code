@@ -1263,12 +1263,14 @@ window.downloadBackup = () => {
 
 function validateBackupDate(value){
   if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
-  const d=new Date(value+"T00:00:00");
-  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;
+  const parts=value.split("-").map(Number);
+  const d=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+  return d.getUTCFullYear()===parts[0]&&d.getUTCMonth()===parts[1]-1&&d.getUTCDate()===parts[2];
 }
 function validateBackupRecord(item,label){
   if(!item||typeof item!=="object"||Array.isArray(item))throw new Error(label+" में गलत entry format है।");
   if(typeof item.id!=="string"||!item.id.trim()||item.id.length>128)throw new Error(label+" में Entry ID गलत है।");
+  if(item.deleted===true||item.permanentlyDeleted===true)throw new Error(label+" में हटाई गई entry गलत section में है।");
   if(!validateBackupDate(item.date))throw new Error(label+" में तारीख गलत है: "+item.id);
   const amount=Number(item.amount);
   if(!Number.isFinite(amount)||amount<=0||amount>1000000000)throw new Error(label+" में राशि गलत है: "+item.id);
