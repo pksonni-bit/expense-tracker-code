@@ -1420,10 +1420,20 @@ window.render=render;
 
 window.toggleEntryPanel=(id,open)=>{
  const panel=$(id);if(!panel)return;
+ const panelIds=["expenseEntryFields","loanEntryFields"];
  const shouldOpen=typeof open==="boolean"?open:panel.hidden;
+ // एक फॉर्म खोलते समय दूसरा अपने आप बंद करें।
+ if(shouldOpen){
+  panelIds.filter(otherId=>otherId!==id).forEach(otherId=>{
+   const other=$(otherId);if(!other)return;
+   other.hidden=true;
+   const otherBtn=other.previousElementSibling;
+   if(otherBtn&&otherBtn.classList.contains("entry-toggle"))otherBtn.textContent=otherId==="loanEntryFields"?"＋ Udhaar Entry Form खोलें":"＋ Entry Form खोलें";
+  });
+ }
  panel.hidden=!shouldOpen;
  const btn=panel.previousElementSibling;
- if(btn&&btn.classList.contains("entry-toggle"))btn.textContent=shouldOpen?"− Entry Form बंद करें":"＋ Entry Form खोलें";
+ if(btn&&btn.classList.contains("entry-toggle"))btn.textContent=shouldOpen?"− Entry Form बंद करें":(id==="loanEntryFields"?"＋ Udhaar Entry Form खोलें":"＋ Entry Form खोलें");
 };
 
 function renderDashboard(){
