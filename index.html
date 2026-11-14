@@ -1592,9 +1592,9 @@ function renderDashboard(){
  const modes={};thisMonth.filter(x=>transactionType(x)==="expense").forEach(x=>{const k=x.payment||"Other";modes[k]=(modes[k]||0)+Number(x.amount||0);});
  const modeRows=Object.entries(modes).sort((a,b)=>b[1]-a[1]),modeMax=Math.max(1,...modeRows.map(x=>x[1]));
  $("dashPaymentModes").innerHTML=modeRows.length?modeRows.map(([name,value])=>'<div class="dash-meter-row"><div class="dash-meter-label"><b>'+escapeHtml(name)+'</b><span>'+money(value)+'</span></div><div class="dash-meter-track"><span style="width:'+Math.max(2,value/modeMax*100)+'%"></span></div></div>').join(""):"<div class='dash-empty'>इस महीने भुगतान डेटा नहीं है।</div>";
- const labels=[],incomes=[],expensesByMonth=[];
- for(let i=5;i>=0;i--){const d=new Date(year,month-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),items=normal.filter(x=>String(x.date||"").startsWith(key));labels.push(d.toLocaleDateString("en-IN",{month:"short"}));incomes.push(sum(items,"income"));expensesByMonth.push(sum(items,"expense"));}
- drawGroupedBars("dashboardMonthlyChart",labels,[{values:incomes,color:"#2563eb"},{values:expensesByMonth,color:"#f97316"}]);
+ const labels=[],incomes=[],expensesByMonth=[],incomeDetails=[],expenseDetails=[];
+ for(let i=5;i>=0;i--){const d=new Date(year,month-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),items=normal.filter(x=>String(x.date||"").startsWith(key));labels.push(d.toLocaleDateString("en-IN",{month:"short"}));const incItems=items.filter(x=>transactionType(x)==="income"),expItems=items.filter(x=>transactionType(x)==="expense");incomes.push(sum(items,"income"));expensesByMonth.push(sum(items,"expense"));incomeDetails.push(incItems);expenseDetails.push(expItems);}
+ drawGroupedBars("dashboardMonthlyChart",labels,[{label:"Income",values:incomes,color:"#2563eb",details:incomeDetails},{label:"खर्च",values:expensesByMonth,color:"#f97316",details:expenseDetails}]);
 }
 
 function render(){
@@ -1800,26 +1800,74 @@ function renderLoans(){
  const summary=$("loanSummary");if(summary){summary.innerHTML="";summary.hidden=true;}
  $("loanList").innerHTML=loans.length?loans.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(x=>{const bal=Math.max(0,Number(x.amount)-Number(x.paidAmount||0));return `<div class="loan-item"><div class="loan-top"><div><b>${x.loanDirection==="lent"?"🟢 दिए हुए पैसे":"🟠 उधार लिए पैसे"} · ${escapeHtml(x.person||"")}</b><div class="muted">${escapeHtml(x.date||"")}${x.dueDate?" · वापसी: "+escapeHtml(x.dueDate):""}</div><div class="muted">कुल ${money(x.amount)} · वापस ${money(x.paidAmount||0)} · <b>बाकी ${money(bal)}</b></div><div class="muted">${escapeHtml(x.note||"")}</div></div><div class="actions"><button onclick="updateLoanPaid('${escapeHtml(x.id)}')">वापसी दर्ज करें</button><button class="danger" onclick="removeExpense('${escapeHtml(x.id)}')">हटाएँ</button></div></div></div>`;}).join(""):"<p class='muted'>अभी कोई उधार दर्ज नहीं है।</p>";
 }
+function chartTooltip(){
+ let tip=$("chartHoverTooltip");
+ if(!tip){tip=document.createElement("div");tip.id="chartHoverTooltip";tip.style.cssText="position:fixed;z-index:20000;display:none;max-width:min(320px,85vw);max-height:45vh;overflow:auto;padding:9px 11px;border-radius:9px;background:#142b45;color:#fff;box-shadow:0 5px 22px #0004;font:12px/1.55 Arial,sans-serif;white-space:pre-line;pointer-events:none";document.body.append(tip);}
+ return tip;
+}
+function showChartTooltip(canvas,event,lines){
+ const tip=chartTooltip();if(!lines||!lines.length){tip.style.display="none";return;}
+ tip.textContent=lines.join("\n");tip.style.display="block";
+ const x=Math.min(event.clientX+14,window.innerWidth-tip.offsetWidth-8),y=Math.min(event.clientY+14,window.innerHeight-tip.offsetHeight-8);
+ tip.style.left=Math.max(8,x)+"px";tip.style.top=Math.max(8,y)+"px";
+}
+function hideChartTooltip(){const tip=$("chartHoverTooltip");if(tip)tip.style.display="none";}
+function chartEntryLines(items){
+ if(!items||!items.length)return ["कोई individual entry नहीं"];
+ const lines=items.slice(0,8).map(x=>{
+  const label=x.category||x.person||"Entry",date=x.date||"",payment=x.payment?" · "+x.payment:"";
+  const note=x.note?" · "+String(x.note).slice(0,55):"";
+  return "• "+label+" · "+date+" · "+money(x.amount||0)+payment+note;
+ });
+ if(items.length>8)lines.push("और "+(items.length-8)+" entries…");
+ return lines;
+}
 function drawGroupedBars(id,labels,series){
  const c=$(id);if(!c)return;const ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const max=Math.max(1,...series.flatMap(z=>z.values));const left=48,top=16,bottom=34,ph=h-top-bottom,pw=w-left-10;ctx.strokeStyle="#dbe2ec";ctx.fillStyle="#64748b";ctx.font="11px Arial";ctx.textAlign="right";
  for(let i=0;i<=4;i++){const y=top+ph*i/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-8,y);ctx.stroke();ctx.fillText(Math.round(max*(4-i)/4).toLocaleString("en-IN"),left-6,y+4);}
- const group=pw/Math.max(1,labels.length),bw=Math.min(18,group/(series.length+1));labels.forEach((label,i)=>{series.forEach((z,j)=>{const v=z.values[i]||0,bh=v/max*(ph-4),x=left+i*group+group/2-(series.length*bw)/2+j*bw;ctx.fillStyle=z.color;ctx.fillRect(x,top+ph-bh,Math.max(3,bw-2),bh);});ctx.fillStyle="#475569";ctx.textAlign="center";ctx.fillText(label,left+i*group+group/2,h-10);});
+ const group=pw/Math.max(1,labels.length),bw=Math.min(18,group/(series.length+1));
+ labels.forEach((label,i)=>{series.forEach((z,j)=>{const v=z.values[i]||0,bh=v/max*(ph-4),x=left+i*group+group/2-(series.length*bw)/2+j*bw;ctx.fillStyle=z.color;ctx.fillRect(x,top+ph-bh,Math.max(3,bw-2),bh);});ctx.fillStyle="#475569";ctx.textAlign="center";ctx.fillText(label,left+i*group+group/2,h-10);});
+ const hitTest=event=>{
+  const rect=c.getBoundingClientRect(),px=(event.clientX-rect.left)*w/rect.width,py=(event.clientY-rect.top)*h/rect.height;
+  if(px<left||px>left+pw||py<top||py>top+ph)return null;
+  const i=Math.floor((px-left)/group);if(i<0||i>=labels.length)return null;
+  for(let j=0;j<series.length;j++){
+   const z=series[j],v=z.values[i]||0,bh=v/max*(ph-4),x=left+i*group+group/2-(series.length*bw)/2+j*bw;
+   if(px>=x-2&&px<=x+bw&&py>=top+ph-bh-5&&py<=top+ph+2&&v>0)
+    return [labels[i]+" · "+(z.label||"राशि"),money(v),...chartEntryLines(z.details&&z.details[i])];
+  }
+  return null;
+ };
+ c.onpointermove=e=>showChartTooltip(c,e,hitTest(e));c.onpointerdown=e=>{const lines=hitTest(e);if(lines)showChartTooltip(c,e,lines);};c.onpointerleave=hideChartTooltip;
 }
 function drawDonut(id,items){
- const c=$(id);if(!c)return;const ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const total=items.reduce((a,x)=>a+x.value,0);if(!total){ctx.fillStyle="#64748b";ctx.font="14px Arial";ctx.textAlign="center";ctx.fillText("इस महीने कोई भुगतान डेटा नहीं",w/2,h/2);return;}
- const colors=["#2563eb","#f97316","#16a34a","#9333ea","#0891b2","#e11d48"];let a=-Math.PI/2;const cx=w/2,cy=h/2,r=78,inner=43;items.forEach((x,i)=>{const b=a+x.value/total*Math.PI*2;ctx.beginPath();ctx.arc(cx,cy,r,a,b);ctx.arc(cx,cy,inner,b,a,true);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a=b;});ctx.fillStyle="#182235";ctx.font="bold 14px Arial";ctx.textAlign="center";ctx.fillText(money(total),cx,cy+5);
+ const c=$(id);if(!c)return;const ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const total=items.reduce((a,x)=>a+x.value,0);if(!total){ctx.fillStyle="#64748b";ctx.font="14px Arial";ctx.textAlign="center";ctx.fillText("इस महीने कोई भुगतान डेटा नहीं",w/2,h/2);c.onpointermove=null;c.onpointerdown=null;return;}
+ const colors=["#2563eb","#f97316","#16a34a","#9333ea","#0891b2","#e11d48"];let a=-Math.PI/2;const cx=w/2,cy=h/2,r=78,inner=43;
+ items.forEach((x,i)=>{const b=a+x.value/total*Math.PI*2;ctx.beginPath();ctx.arc(cx,cy,r,a,b);ctx.arc(cx,cy,inner,b,a,true);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a=b;});
+ ctx.fillStyle="#182235";ctx.font="bold 14px Arial";ctx.textAlign="center";ctx.fillText(money(total),cx,cy+5);
+ const hitTest=event=>{
+  const rect=c.getBoundingClientRect(),px=(event.clientX-rect.left)*w/rect.width,py=(event.clientY-rect.top)*h/rect.height,dx=px-cx,dy=py-cy,dist=Math.hypot(dx,dy);
+  if(dist<inner||dist>r)return null;
+  let angle=Math.atan2(dy,dx);while(angle< -Math.PI/2)angle+=Math.PI*2;
+  let start=-Math.PI/2;
+  for(const item of items){const end=start+item.value/total*Math.PI*2;if(angle>=start&&angle<=end)return [item.name+" · "+money(item.value),Math.round(item.value/total*100)+"% of total",...chartEntryLines(item.details)];start=end;}
+  return null;
+ };
+ c.onpointermove=e=>showChartTooltip(c,e,hitTest(e));c.onpointerdown=e=>{const lines=hitTest(e);if(lines)showChartTooltip(c,e,lines);};c.onpointerleave=hideChartTooltip;
 }
 function renderCharts(){
  const chosen=$("reportMonth").value||monthKey();const [y,m]=chosen.split("-").map(Number),labels=[],income=[],expense=[];
- for(let i=11;i>=0;i--){const d=new Date(y,m-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");labels.push(String(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(-2));const a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key));income.push(a.filter(x=>transactionType(x)==="income").reduce((t,x)=>t+Number(x.amount||0),0));expense.push(a.filter(x=>transactionType(x)==="expense").reduce((t,x)=>t+Number(x.amount||0),0));}
- drawGroupedBars("trendChart",labels,[{values:income,color:"#2563eb"},{values:expense,color:"#f97316"}]);
- const rows=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(chosen)&&transactionType(x)==="expense"),sums={};rows.forEach(x=>{const k=x.payment||"Other";sums[k]=(sums[k]||0)+Number(x.amount||0);});const modes=Object.entries(sums).map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value),colors=["#2563eb","#f97316","#16a34a","#9333ea","#0891b2","#e11d48"];
+ const incomeDetails=[],expenseDetails=[];
+ for(let i=11;i>=0;i--){const d=new Date(y,m-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");labels.push(String(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(-2));const a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key)),inc=a.filter(x=>transactionType(x)==="income"),exp=a.filter(x=>transactionType(x)==="expense");income.push(inc.reduce((t,x)=>t+Number(x.amount||0),0));expense.push(exp.reduce((t,x)=>t+Number(x.amount||0),0));incomeDetails.push(inc);expenseDetails.push(exp);}
+ drawGroupedBars("trendChart",labels,[{label:"Income",values:income,color:"#2563eb",details:incomeDetails},{label:"खर्च",values:expense,color:"#f97316",details:expenseDetails}]);
+ const rows=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(chosen)&&transactionType(x)==="expense"),sums={};rows.forEach(x=>{const k=x.payment||"Other";sums[k]=(sums[k]||0)+Number(x.amount||0);});const modes=Object.entries(sums).map(([name,value])=>({name,value,details:rows.filter(x=>(x.payment||"Other")===name)})).sort((a,b)=>b.value-a.value);
  drawDonut("paymentChart",modes);
 }
 function renderYearSummary(){
  const years=[...new Set(expenses.filter(x=>x.recordType!=="loan").map(x=>String(x.date||"").slice(0,4)).filter(x=>/^\d{4}$/.test(x)))].sort().reverse(),current=String(new Date().getFullYear());if(!years.includes(current))years.unshift(current);const sel=$("yearSelect"),old=sel.value;sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");sel.value=years.includes(old)?old:current;const year=sel.value||current;let ti=0,te=0,inc=[],exp=[],labels=[],rows=[];
- for(let m=1;m<=12;m++){const key=year+"-"+String(m).padStart(2,"0"),a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key)),i=a.filter(x=>transactionType(x)==="income").reduce((t,x)=>t+Number(x.amount||0),0),e=a.filter(x=>transactionType(x)==="expense").reduce((t,x)=>t+Number(x.amount||0),0);ti+=i;te+=e;inc.push(i);exp.push(e);labels.push(["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]);if(i||e)rows.push(`<tr><td>${key}</td><td style="text-align:right">${money(i)}</td><td style="text-align:right">${money(e)}</td><td style="text-align:right">${money(i-e)}</td></tr>`);}
- $("yearSummary").innerHTML=`<div class="stats"><div class="stat"><small>${year} की Income</small><b style="color:#15803d">${money(ti)}</b></div><div class="stat"><small>${year} का खर्च</small><b>${money(te)}</b></div><div class="stat"><small>साल की बचत / अंतर</small><b style="color:${ti-te<0?"#dc2626":"#15803d"}">${money(ti-te)}</b></div><div class="stat"><small>कुल दर्ज महीने</small><b>${rows.length}</b></div></div><h4>Month-wise Summary</h4><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:7px">महीना</th><th style="text-align:right;padding:7px">Income</th><th style="text-align:right;padding:7px">खर्च</th><th style="text-align:right;padding:7px">अंतर</th></tr></thead><tbody>${rows.join("")||"<tr><td colspan='4'>इस साल कोई entry नहीं है।</td></tr>"}</tbody></table></div>`;drawGroupedBars("yearChart",labels,[{values:inc,color:"#2563eb"},{values:exp,color:"#f97316"}]);
+ const incomeDetails=[],expenseDetails=[];
+ for(let m=1;m<=12;m++){const key=year+"-"+String(m).padStart(2,"0"),a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key)),incItems=a.filter(x=>transactionType(x)==="income"),expItems=a.filter(x=>transactionType(x)==="expense"),i=incItems.reduce((t,x)=>t+Number(x.amount||0),0),e=expItems.reduce((t,x)=>t+Number(x.amount||0),0);ti+=i;te+=e;inc.push(i);exp.push(e);incomeDetails.push(incItems);expenseDetails.push(expItems);labels.push(["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]);if(i||e)rows.push(`<tr><td>${key}</td><td style="text-align:right">${money(i)}</td><td style="text-align:right">${money(e)}</td><td style="text-align:right">${money(i-e)}</td></tr>`);}
+ $("yearSummary").innerHTML=`<div class="stats"><div class="stat"><small>${year} की Income</small><b style="color:#15803d">${money(ti)}</b></div><div class="stat"><small>${year} का खर्च</small><b>${money(te)}</b></div><div class="stat"><small>साल की बचत / अंतर</small><b style="color:${ti-te<0?"#dc2626":"#15803d"}">${money(ti-te)}</b></div><div class="stat"><small>कुल दर्ज महीने</small><b>${rows.length}</b></div></div><h4>Month-wise Summary</h4><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:7px">महीना</th><th style="text-align:right;padding:7px">Income</th><th style="text-align:right;padding:7px">खर्च</th><th style="text-align:right;padding:7px">अंतर</th></tr></thead><tbody>${rows.join("")||"<tr><td colspan='4'>इस साल कोई entry नहीं है।</td></tr>"}</tbody></table></div>`;drawGroupedBars("yearChart",labels,[{label:"Income",values:inc,color:"#2563eb",details:incomeDetails},{label:"खर्च",values:exp,color:"#f97316",details:expenseDetails}]);
 }
 window.addEventListener("resize",()=>{if($("trendChart"))renderCharts();if($("yearChart"))renderYearSummary();});
 
