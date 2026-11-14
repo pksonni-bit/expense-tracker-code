@@ -378,8 +378,6 @@ body.entry-modal-open{overflow:hidden}
   <div class="stat"><small>इस महीने का खर्च</small><b id="monthTotal">₹0</b></div>
   <div class="stat"><small>इस महीने की Income</small><b id="monthIncome">₹0</b></div>
   <div class="stat"><small>कुल बचत / अंतर</small><b id="monthBalance">₹0</b></div>
-  <div class="stat"><small>मासिक बजट</small><b id="budgetShow">₹30,000</b></div>
-  <div class="stat"><small>बजट शेष</small><b id="remaining">₹30,000</b></div>
  </div>
 
  <section class="dashboard-shell" aria-label="मुख्य डैशबोर्ड">
@@ -403,8 +401,6 @@ body.entry-modal-open{overflow:hidden}
   <b>मासिक बजट</b>
   <input id="budget" type="number" min="1" step="1" placeholder="मासिक बजट">
   <button onclick="saveBudget()">बजट सेव करें</button>
-  <p class="muted" id="budgetText"></p>
-  <div class="progress"><div id="bar"></div></div>
  </div>
 
  <div class="card">
@@ -470,7 +466,7 @@ body.entry-modal-open{overflow:hidden}
   <p class="muted">चुने हुए महीने और पिछले 11 महीनों की Income व खर्च की तुलना।</p>
   <canvas id="trendChart" class="chart" width="720" height="260"></canvas>
   <div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div>
-  <h4>📊 Payment Mode Distribution Chart</h4><canvas id="paymentChart" class="chart" width="720" height="230"></canvas>
+  <h4>📊 चुने हुए महीने का Payment Mode Distribution</h4><canvas id="paymentChart" class="chart" width="720" height="230"></canvas>
  </div>
  <div class="card"><h3>🗓️ Yearly Financial Summary</h3><label>साल चुनें</label><select id="yearSelect" onchange="render()"></select><div id="yearSummary"></div><canvas id="yearChart" class="chart" width="720" height="270"></canvas></div>
 
@@ -499,10 +495,6 @@ body.entry-modal-open{overflow:hidden}
   <p class="muted">सलाह: समय-समय पर Backup फाइल अपने कंप्यूटर में सुरक्षित रखें।</p>
 </div>
 
- <div class="card">
-  <h3>📊 इस महीने श्रेणी के अनुसार खर्च</h3>
-  <div id="categories"></div>
- </div>
 </main>
 
 <div id="attachmentModal" class="attachment-modal" role="dialog" aria-modal="true" aria-label="Attachment viewer" onclick="if(event.target===this)closeAttachment()">
@@ -1618,24 +1610,7 @@ function render(){
  $("monthIncome").textContent=money(incomeTotal);
  $("monthBalance").textContent=money(incomeTotal-total);
  $("monthBalance").style.color=incomeTotal-total<0?"#dc2626":"#15803d";
- $("budgetShow").textContent=money(budgetValue);
- $("remaining").textContent=money(left);
-
- $("remaining").style.color=
-  left<0?"#dc2626":"#15803d";
-
  $("budget").value=budgetValue;
-
- const pct=budgetValue>0?total/budgetValue*100:0;
-
- $("budgetText").textContent=
-  "बजट का "+Math.round(pct)+"% खर्च हुआ";
-
- $("bar").style.width=
-  Math.min(100,Math.max(0,pct))+"%";
-
- $("bar").style.background=
-  pct>100?"#dc2626":"#16a34a";
 
  let rows=normalItems.filter(x=>{
   if(filterMode==="today"&&x.date!==t)return false;
@@ -1697,19 +1672,6 @@ function render(){
   </details>`;
  }).join(""):"<p class='muted'>अभी कोई खर्च दर्ज नहीं है।</p>";
 
- const sums={};
-
- monthExpenses.forEach(x=>{
-  const cat=x.category||"अन्य";
-  sums[cat]=(sums[cat]||0)+Number(x.amount||0);
- });
-
- $("categories").innerHTML=
-  Object.entries(sums)
-   .sort((a,b)=>b[1]-a[1])
-   .map(([k,v])=>
-    `<p>${escapeHtml(k)} <b style="float:right">${money(v)}</b></p>`
-   ).join("")||"अभी कोई खर्च नहीं";
 
  renderMonthlyReport();
  renderRecycleBin();
@@ -1732,12 +1694,7 @@ function renderMonthlyReport(){
  const diff=(now,before)=>now-before;
  const pct=(now,before)=>before===0?(now===0?"0%":"नया"):(Math.abs((now-before)/before*100).toFixed(1)+"%");
  const trend=(now,before)=>now>before?"बढ़ा":now<before?"घटा":"कोई बदलाव नहीं";
- const allMonths=[...new Set(expenses.filter(x=>x.recordType!=="loan").map(x=>String(x.date||"").slice(0,7)).filter(x=>/^\d{4}-\d{2}$/.test(x)))].sort().reverse();
- if(!allMonths.includes(selected))allMonths.unshift(selected);
- const monthRows=allMonths.map(month=>{
-  const e=sum(month,"expense"),i=sum(month,"income");
-  return `<tr><td>${month}</td><td style="text-align:right">${money(e)}</td><td style="text-align:right;color:#15803d">${money(i)}</td><td style="text-align:right">${money(i-e)}</td></tr>`;
- }).join("");
+
  $("monthlyReport").innerHTML=`
   <div class="stats" style="margin-top:10px">
    <div class="stat"><small>${selected} · कुल खर्च</small><b>${money(exp)}</b></div>
@@ -1748,14 +1705,7 @@ function renderMonthlyReport(){
   <h4>पिछले महीने से तुलना (${previous})</h4>
   <p>खर्च: <b>${money(prevExp)}</b> → <b>${money(exp)}</b><br><span class="muted">${trend(exp,prevExp)} ${money(Math.abs(diff(exp,prevExp)))} (${pct(exp,prevExp)})</span></p>
   <p>Income: <b>${money(prevInc)}</b> → <b>${money(inc)}</b><br><span class="muted">${trend(inc,prevInc)} ${money(Math.abs(diff(inc,prevInc)))} (${pct(inc,prevInc)})</span></p>
-  <p>पिछले महीने की बचत/अंतर: <b>${money(prevInc-prevExp)}</b><br>इस महीने की बचत/अंतर: <b>${money(inc-exp)}</b></p>
-  <h4>सभी महीनों का हिसाब</h4>
-  <div style="overflow-x:auto">
-   <table style="width:100%;border-collapse:collapse;font-size:13px">
-    <thead><tr><th style="text-align:left;padding:7px">महीना</th><th style="text-align:right;padding:7px">खर्च</th><th style="text-align:right;padding:7px">Income</th><th style="text-align:right;padding:7px">अंतर</th></tr></thead>
-    <tbody>${monthRows||""}</tbody>
-   </table>
-  </div>
+
  `;
 }
 
