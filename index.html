@@ -212,6 +212,101 @@ main>.card h3{margin-bottom:11px}
 @media(min-width:900px){.dashboard-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.dash-chart-panel{grid-column:span 2}.dashboard-shell{padding:19px}}
 @media(max-width:600px){.entry-quick-actions{flex-direction:column}.entry-quick-actions button{width:100%}.dashboard-shell{padding:13px}.dash-panel{padding:12px}}
 
+
+/* ===== CLEAN + COMPACT FINISH ===== */
+:root{
+ --ink:#172b45;--muted:#718096;--line:#e7edf4;--blue:#245f9e;
+ --surface:#fff;--soft:#f5f8fc;--shadow:0 2px 10px rgba(25,45,75,.045);
+}
+body{background:#f5f7fa;line-height:1.42}
+header{padding:14px max(16px,calc((100% - 1120px)/2));box-shadow:0 2px 9px #102d5014}
+header h2{font-size:21px;margin:0 0 3px}
+#status{font-size:11px;padding:3px 9px}
+main{gap:11px;margin:14px auto;padding:0 14px 22px}
+main>.card{padding:13px;border-radius:13px;box-shadow:var(--shadow);border:1px solid #edf1f6}
+main>.card h3{font-size:16px;margin:0 0 9px}
+main>.card h4{font-size:14px;margin:13px 0 7px}
+.stats{gap:8px}
+.stat{padding:11px 12px;border-radius:11px}
+.stat small{font-size:11px}
+.stat b{font-size:clamp(17px,1.8vw,21px);margin-top:4px}
+input,select{padding:9px 10px;margin:4px 0 8px;border-radius:8px;font-size:14px}
+label{font-size:12px;margin-top:2px}
+button{padding:9px 12px;border-radius:8px;font-size:13px}
+nav{gap:5px;margin-bottom:8px}
+nav button{padding:8px 9px;font-size:12px}
+.dashboard-shell{padding:14px;border-radius:15px;box-shadow:0 3px 14px rgba(28,62,105,.055)}
+.dashboard-heading{margin-bottom:9px}
+.dashboard-heading h3{font-size:19px;margin:2px 0}
+.dashboard-heading p{font-size:11px}
+.dashboard-kicker{font-size:9px;letter-spacing:1.1px}
+.dashboard-month{font-size:11px;padding:5px 10px}
+.entry-quick-actions{gap:7px;margin-bottom:9px}
+.entry-quick-actions button{padding:9px 11px;min-width:145px;font-size:12px}
+.dashboard-entry-card{padding:10px!important;margin-bottom:7px!important;border-radius:10px!important}
+.dashboard-entry-card h3{font-size:14px!important;margin-bottom:6px!important}
+.dashboard-entry-card .entry-fields{margin-top:7px;padding-top:7px}
+.dashboard-entry-card input,.dashboard-entry-card select{padding:8px 9px;margin:3px 0 7px;font-size:13px}
+.dashboard-entry-card label{font-size:12px}
+.dashboard-entry-card .field-help{font-size:10px}
+.entry-toggle{font-size:12px;padding:8px 10px}
+.entry-fields{margin-top:8px;padding-top:8px}
+.dashboard-grid{gap:8px}
+.dash-panel{padding:11px;border-radius:11px;box-shadow:none}
+.dash-panel-title{font-size:12px;margin-bottom:7px}
+.dash-panel-title small{font-size:9px}
+.dash-budget-values,.dash-loan-values{gap:6px;margin:4px 0 8px}
+.dash-budget-values small,.dash-loan-values small{font-size:10px}
+.dash-budget-values b,.dash-loan-values b{font-size:18px;margin-top:2px}
+.dash-track{height:9px}
+.dash-hint{font-size:10px;margin-top:6px}
+.dash-recent-row,.dash-compare-row{font-size:11px;padding:6px 0}
+.dash-meter-row{margin:6px 0}
+.dash-meter-label{font-size:11px}
+.dash-meter-track{height:6px}
+canvas.chart{height:185px}
+.expense{padding:10px 2px;font-size:13px}
+.loan-item{padding:10px 0}
+.muted{font-size:11px}
+.tag{font-size:10px;padding:3px 7px}
+.actions{gap:4px}
+.actions button{padding:6px 8px;font-size:11px}
+#categories p{margin:5px 0;padding:7px 9px;font-size:12px}
+table{font-size:12px!important}
+table td,table th{padding:6px!important}
+@media(min-width:900px){
+ main{gap:11px}
+ main>.stats{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+ main>.stats .stat{padding:10px}
+ main>.stats .stat b{font-size:18px}
+ .dashboard-shell{padding:15px}
+ .dashboard-grid{gap:8px}
+ .dash-panel{padding:11px}
+}
+@media(max-width:760px){
+ main{gap:9px;margin:10px auto;padding:0 10px 18px}
+ main>.card{padding:12px}
+ .stats{gap:7px}
+ .stat{padding:10px}
+ header{padding:13px 14px}
+ header h2{font-size:19px}
+ .dashboard-shell{padding:11px}
+ .dashboard-heading h3{font-size:17px}
+ .dashboard-grid{gap:8px}
+ .dash-panel{padding:10px}
+ .entry-quick-actions{flex-direction:row}
+ .entry-quick-actions button{flex:1;min-width:0;width:auto;padding:9px 7px;font-size:11px}
+ canvas.chart{height:175px}
+}
+@media(max-width:420px){
+ main{padding-left:8px;padding-right:8px}
+ .stat{padding:9px}
+ .stat b{font-size:16px}
+ .dashboard-entry-card{padding:9px!important}
+ .entry-quick-actions button{font-size:10px}
+ .expense{font-size:12px}
+}
+
 </style>
 </head>
 
