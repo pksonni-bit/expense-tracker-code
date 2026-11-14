@@ -1662,15 +1662,15 @@ function render(){
  const groupedMonths={};
  rows.forEach(x=>{
   const key=String(x.date||"").slice(0,7);
-  if(!/^\\d{4}-\\d{2}$/.test(key))return;
-  (groupedMonths[key]||(groupedMonths[key]=[])).push(x);
+  const folderKey=/^\\d{4}-\\d{2}$/.test(key)?key:"unknown";
+  (groupedMonths[folderKey]||(groupedMonths[folderKey]=[])).push(x);
  });
  // हर नए महीने का फोल्डर अपने आप दिखेगा, भले अभी उसमें entry न हो।
  if(filterMode==="all"&&!q)groupedMonths[m]=groupedMonths[m]||[];
  const monthKeys=Object.keys(groupedMonths).sort((a,b)=>b.localeCompare(a));
  $("list").innerHTML=monthKeys.length?monthKeys.map(month=>{
   const items=groupedMonths[month],monthExpense=items.filter(x=>transactionType(x)==="expense").reduce((a,x)=>a+Number(x.amount||0),0),monthIncome=items.filter(x=>transactionType(x)==="income").reduce((a,x)=>a+Number(x.amount||0),0);
-  const title=new Date(Number(month.slice(0,4)),Number(month.slice(5,7))-1,1).toLocaleDateString("hi-IN",{month:"long",year:"numeric"});
+  const title=month==="unknown"?"तारीख उपलब्ध नहीं":new Date(Number(month.slice(0,4)),Number(month.slice(5,7))-1,1).toLocaleDateString("hi-IN",{month:"long",year:"numeric"});
   const entryHtml=items.map(x=>`
    <div class="expense">
     <div>
