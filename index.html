@@ -149,6 +149,41 @@ table td,table th{border-bottom:1px solid #e9edf3}
   .actions button{padding:7px 8px;font-size:11px}
 }
 
+
+/* ===== MODERN FINANCE DASHBOARD ===== */
+.dashboard-shell{grid-column:1/-1;min-width:0;padding:22px;border-radius:22px;background:linear-gradient(145deg,#f8fbff,#edf4fc);border:1px solid #e2eaf5;box-shadow:0 10px 30px rgba(28,62,105,.08)}
+.dashboard-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.dashboard-heading h3{margin:4px 0;color:#173b67;font-size:23px}
+.dashboard-heading p{margin:0;color:#718096;font-size:13px}
+.dashboard-kicker{font-size:10px;font-weight:800;letter-spacing:1.4px;color:#4280bd}
+.dashboard-month{padding:7px 12px;border-radius:30px;background:#e1edfb;color:#24588e;font-size:12px;font-weight:700;white-space:nowrap}
+.dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.dash-panel{min-width:0;padding:17px;border:1px solid #e8eef6;border-radius:16px;background:#fff;box-shadow:0 3px 12px rgba(31,58,91,.045)}
+.dash-panel-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:13px;color:#24486f;font-size:14px;font-weight:750}
+.dash-panel-title small{font-size:10px;font-weight:600;color:#8291a5}
+.dash-budget{background:linear-gradient(135deg,#fff,#f2f8ff)}
+.dash-budget-values,.dash-loan-values{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 14px}
+.dash-budget-values small,.dash-loan-values small{display:block;color:#7b899b;font-size:11px}
+.dash-budget-values b,.dash-loan-values b{display:block;margin-top:4px;color:#1c426c;font-size:clamp(18px,2vw,24px);overflow-wrap:anywhere}
+.dash-track{height:12px;border-radius:20px;background:#e7edf5;overflow:hidden}
+#dashBudgetBar{height:100%;width:0;border-radius:20px;background:linear-gradient(90deg,#27a56a,#5bc58a);transition:width .25s}
+.dash-hint{margin:9px 0 0;color:#77869a;font-size:11px}
+.dash-recent-row{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #eef2f7;font-size:12px}
+.dash-recent-row:last-child{border:0}
+.dash-recent-row>div:first-child{min-width:0}
+.dash-recent-row b{display:block;color:#344e6b;overflow-wrap:anywhere}
+.dash-recent-row small{color:#8794a5}
+.dash-recent-amount{white-space:nowrap;font-weight:750}
+.dash-meter-row{margin:10px 0}
+.dash-meter-label{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#435b77}
+.dash-meter-track{height:8px;margin-top:5px;border-radius:20px;background:#edf1f6;overflow:hidden}
+.dash-meter-track span{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#367ac1,#70a8df)}
+.dash-compare-row{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #eef2f7;font-size:12px}
+.dash-compare-row:last-child{border:0}
+.dash-empty{padding:12px 0;color:#8a97a8;font-size:12px}
+@media(min-width:900px){.dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dash-chart-panel{grid-column:span 2}.dashboard-shell{padding:25px}}
+@media(max-width:600px){.dashboard-shell{padding:15px;border-radius:16px}.dashboard-heading{align-items:flex-start;flex-direction:column}.dashboard-heading h3{font-size:20px}.dashboard-grid{grid-template-columns:1fr}.dash-panel{padding:14px}.dashboard-month{align-self:flex-start}}
+
 </style>
 </head>
 
@@ -177,6 +212,22 @@ table td,table th{border-bottom:1px solid #e9edf3}
   <div class="stat"><small>मासिक बजट</small><b id="budgetShow">₹30,000</b></div>
   <div class="stat"><small>बजट शेष</small><b id="remaining">₹30,000</b></div>
  </div>
+
+ <section class="dashboard-shell" aria-label="मुख्य डैशबोर्ड">
+  <div class="dashboard-heading">
+   <div><span class="dashboard-kicker">YOUR MONEY AT A GLANCE</span><h3>📊 आपका Financial Dashboard</h3><p>इस महीने की पूरी वित्तीय स्थिति एक जगह</p></div>
+   <span class="dashboard-month" id="dashboardMonth"></span>
+  </div>
+  <div class="dashboard-grid">
+   <section class="dash-panel dash-budget"><div class="dash-panel-title"><span>🎯 Budget Progress</span><small id="dashBudgetPercent">0%</small></div><div class="dash-budget-values"><div><small>खर्च हुआ</small><b id="dashBudgetSpent">₹0</b></div><div><small>बजट शेष</small><b id="dashBudgetLeft">₹0</b></div></div><div class="dash-track"><div id="dashBudgetBar"></div></div><p id="dashBudgetHint" class="dash-hint"></p></section>
+   <section class="dash-panel dash-chart-panel"><div class="dash-panel-title"><span>📈 Monthly Charts</span><small>पिछले 6 महीने</small></div><canvas id="dashboardMonthlyChart" class="chart" width="720" height="230"></canvas><div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div></section>
+   <section class="dash-panel"><div class="dash-panel-title"><span>🤝 Udhaar Summary</span><small>बाकी रकम</small></div><div class="dash-loan-values"><div><small>वापस लेने हैं</small><b id="dashLent">₹0</b></div><div><small>वापस देने हैं</small><b id="dashBorrowed">₹0</b></div></div><p class="dash-hint" id="dashLoanHint"></p></section>
+   <section class="dash-panel"><div class="dash-panel-title"><span>🧾 Recent Transactions</span><small>हाल की 5 entries</small></div><div id="dashRecent" class="dash-recent"></div></section>
+   <section class="dash-panel"><div class="dash-panel-title"><span>🏆 Top Expense Categories</span><small>इस महीने</small></div><div id="dashTopCategories"></div></section>
+   <section class="dash-panel"><div class="dash-panel-title"><span>🔄 Monthly Comparison</span><small id="dashComparePeriod"></small></div><div id="dashComparison"></div></section>
+   <section class="dash-panel"><div class="dash-panel-title"><span>💳 Payment Mode Analysis</span><small>इस महीने</small></div><div id="dashPaymentModes"></div></section>
+  </div>
+ </section>
 
  <div class="card">
   <b>मासिक बजट</b>
@@ -1329,6 +1380,45 @@ window.setFilter=mode=>{
 
 window.render=render;
 
+function renderDashboard(){
+ const current=monthKey(),[year,month]=current.split("-").map(Number);
+ const prevDate=new Date(year,month-2,1),previous=prevDate.getFullYear()+"-"+String(prevDate.getMonth()+1).padStart(2,"0");
+ const normal=expenses.filter(x=>x.recordType!=="loan");
+ const thisMonth=normal.filter(x=>String(x.date||"").startsWith(current));
+ const previousMonth=normal.filter(x=>String(x.date||"").startsWith(previous));
+ const sum=(items,type)=>items.filter(x=>transactionType(x)===type).reduce((a,x)=>a+Number(x.amount||0),0);
+ const spent=sum(thisMonth,"expense"),income=sum(thisMonth,"income"),prevSpent=sum(previousMonth,"expense"),prevIncome=sum(previousMonth,"income");
+ $("dashboardMonth").textContent=new Date(year,month-1,1).toLocaleDateString("hi-IN",{month:"long",year:"numeric"});
+ const percent=budgetValue>0?spent/budgetValue*100:0,remaining=budgetValue-spent;
+ $("dashBudgetPercent").textContent=Math.round(percent)+"%";
+ $("dashBudgetSpent").textContent=money(spent);
+ $("dashBudgetLeft").textContent=money(remaining);
+ $("dashBudgetBar").style.width=Math.min(100,Math.max(0,percent))+"%";
+ $("dashBudgetBar").style.background=percent>=100?"linear-gradient(90deg,#dc4545,#f07878)":percent>=80?"linear-gradient(90deg,#e59a24,#f3c56b)":"linear-gradient(90deg,#27a56a,#5bc58a)";
+ $("dashBudgetHint").textContent=budgetValue>0?(percent>=100?"⚠️ आपका बजट पार हो गया है।":percent>=80?"ध्यान दें: बजट का बड़ा हिस्सा खर्च हो चुका है।":"आप बजट के अंदर हैं।"):"पहले मासिक बजट सेट करें।";
+ const loans=expenses.filter(x=>x.recordType==="loan");
+ const lent=loans.filter(x=>x.loanDirection==="lent").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);
+ const borrowed=loans.filter(x=>x.loanDirection==="borrowed").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);
+ $("dashLent").textContent=money(lent);$("dashBorrowed").textContent=money(borrowed);
+ $("dashLoanHint").textContent=loans.length?loans.length+" उधार entries दर्ज हैं।":"अभी कोई उधार दर्ज नहीं है।";
+ const recent=expenses.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||Number(b.updatedAt||0)-Number(a.updatedAt||0)).slice(0,5);
+ $("dashRecent").innerHTML=recent.length?recent.map(x=>{const loan=x.recordType==="loan",isIncome=transactionType(x)==="income";const label=loan?(x.loanDirection==="lent"?"उधार दिया":"उधार लिया"):(x.category||"अन्य");const amount=loan?Math.max(0,Number(x.amount)-Number(x.paidAmount||0)):Number(x.amount||0);return '<div class="dash-recent-row"><div><b>'+escapeHtml(label)+'</b><small>'+escapeHtml(x.date||"")+' · '+escapeHtml(loan?(x.person||"उधार"): (x.payment||""))+'</small></div><span class="dash-recent-amount" style="color:'+(isIncome?"#16804a":loan?"#64748b":"#d45b45")+'">'+(loan?"बाकी ":"")+(isIncome?"+":"")+money(amount)+'</span></div>';}).join(""):"<div class='dash-empty'>अभी कोई transaction नहीं है।</div>";
+ const categories={};thisMonth.filter(x=>transactionType(x)==="expense").forEach(x=>{const k=x.category||"अन्य";categories[k]=(categories[k]||0)+Number(x.amount||0);});
+ const top=Object.entries(categories).sort((a,b)=>b[1]-a[1]).slice(0,5),topMax=Math.max(1,...top.map(x=>x[1]));
+ $("dashTopCategories").innerHTML=top.length?top.map(([name,value])=>'<div class="dash-meter-row"><div class="dash-meter-label"><b>'+escapeHtml(name)+'</b><span>'+money(value)+'</span></div><div class="dash-meter-track"><span style="width:'+Math.max(2,value/topMax*100)+'%"></span></div></div>').join(""):"<div class='dash-empty'>इस महीने खर्च की entry नहीं है।</div>";
+ $("dashComparePeriod").textContent=previous+" से तुलना";
+ const expenseDiff=spent-prevSpent,incomeDiff=income-prevIncome;
+ const pctChange=(now,before)=>before?((Math.abs(now-before)/before)*100).toFixed(1)+"%":(now?"नया":"0%");
+ const direction=(diff)=>diff>0?"बढ़ा":diff<0?"घटा":"कोई बदलाव नहीं";
+ $("dashComparison").innerHTML='<div class="dash-compare-row"><span>खर्च</span><b style="color:'+(expenseDiff>0?"#d45b45":"#16804a")+'">'+direction(expenseDiff)+' · '+money(Math.abs(expenseDiff))+' ('+pctChange(spent,prevSpent)+')</b></div><div class="dash-compare-row"><span>Income</span><b style="color:'+(incomeDiff>=0?"#16804a":"#d45b45")+'">'+direction(incomeDiff)+' · '+money(Math.abs(incomeDiff))+' ('+pctChange(income,prevIncome)+')</b></div><div class="dash-compare-row"><span>इस महीने का अंतर</span><b>'+money(income-spent)+'</b></div>';
+ const modes={};thisMonth.filter(x=>transactionType(x)==="expense").forEach(x=>{const k=x.payment||"Other";modes[k]=(modes[k]||0)+Number(x.amount||0);});
+ const modeRows=Object.entries(modes).sort((a,b)=>b[1]-a[1]),modeMax=Math.max(1,...modeRows.map(x=>x[1]));
+ $("dashPaymentModes").innerHTML=modeRows.length?modeRows.map(([name,value])=>'<div class="dash-meter-row"><div class="dash-meter-label"><b>'+escapeHtml(name)+'</b><span>'+money(value)+'</span></div><div class="dash-meter-track"><span style="width:'+Math.max(2,value/modeMax*100)+'%"></span></div></div>').join(""):"<div class='dash-empty'>इस महीने भुगतान डेटा नहीं है।</div>";
+ const labels=[],incomes=[],expensesByMonth=[];
+ for(let i=5;i>=0;i--){const d=new Date(year,month-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),items=normal.filter(x=>String(x.date||"").startsWith(key));labels.push(d.toLocaleDateString("en-IN",{month:"short"}));incomes.push(sum(items,"income"));expensesByMonth.push(sum(items,"expense"));}
+ drawGroupedBars("dashboardMonthlyChart",labels,[{values:incomes,color:"#2563eb"},{values:expensesByMonth,color:"#f97316"}]);
+}
+
 function render(){
  const t=today();
  const m=monthKey();
@@ -1432,6 +1522,7 @@ function render(){
  renderLoans();
  renderCharts();
  renderYearSummary();
+ renderDashboard();
 }
 
 function renderMonthlyReport(){
