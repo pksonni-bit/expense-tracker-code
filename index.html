@@ -470,7 +470,7 @@ body.entry-modal-open{overflow:hidden}
   <p class="muted">चुने हुए महीने और पिछले 11 महीनों की Income व खर्च की तुलना।</p>
   <canvas id="trendChart" class="chart" width="720" height="260"></canvas>
   <div class="chart-legend"><span><i class="legend-dot" style="background:#2563eb"></i>Income</span><span><i class="legend-dot" style="background:#f97316"></i>खर्च</span></div>
-  <h4>💳 Payment Mode Analysis</h4><div id="paymentAnalysis"></div><canvas id="paymentChart" class="chart" width="720" height="230"></canvas>
+  <h4>📊 Payment Mode Distribution Chart</h4><canvas id="paymentChart" class="chart" width="720" height="230"></canvas>
  </div>
  <div class="card"><h3>🗓️ Yearly Financial Summary</h3><label>साल चुनें</label><select id="yearSelect" onchange="render()"></select><div id="yearSummary"></div><canvas id="yearChart" class="chart" width="720" height="270"></canvas></div>
 
@@ -1797,7 +1797,7 @@ window.updateLoanPaid=async id=>{
 };
 function renderLoans(){
  const loans=expenses.filter(x=>x.recordType==="loan");const lent=loans.filter(x=>x.loanDirection==="lent").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);const borrowed=loans.filter(x=>x.loanDirection==="borrowed").reduce((a,x)=>a+Math.max(0,Number(x.amount)-Number(x.paidAmount||0)),0);
- $("loanSummary").innerHTML=`<div class="stat"><small>वापस लेने हैं</small><b>${money(lent)}</b></div><div class="stat"><small>वापस देने हैं</small><b>${money(borrowed)}</b></div>`;
+ const summary=$("loanSummary");if(summary){summary.innerHTML="";summary.hidden=true;}
  $("loanList").innerHTML=loans.length?loans.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(x=>{const bal=Math.max(0,Number(x.amount)-Number(x.paidAmount||0));return `<div class="loan-item"><div class="loan-top"><div><b>${x.loanDirection==="lent"?"🟢 दिए हुए पैसे":"🟠 उधार लिए पैसे"} · ${escapeHtml(x.person||"")}</b><div class="muted">${escapeHtml(x.date||"")}${x.dueDate?" · वापसी: "+escapeHtml(x.dueDate):""}</div><div class="muted">कुल ${money(x.amount)} · वापस ${money(x.paidAmount||0)} · <b>बाकी ${money(bal)}</b></div><div class="muted">${escapeHtml(x.note||"")}</div></div><div class="actions"><button onclick="updateLoanPaid('${escapeHtml(x.id)}')">वापसी दर्ज करें</button><button class="danger" onclick="removeExpense('${escapeHtml(x.id)}')">हटाएँ</button></div></div></div>`;}).join(""):"<p class='muted'>अभी कोई उधार दर्ज नहीं है।</p>";
 }
 function drawGroupedBars(id,labels,series){
@@ -1814,7 +1814,7 @@ function renderCharts(){
  for(let i=11;i>=0;i--){const d=new Date(y,m-1-i,1),key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");labels.push(String(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(-2));const a=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(key));income.push(a.filter(x=>transactionType(x)==="income").reduce((t,x)=>t+Number(x.amount||0),0));expense.push(a.filter(x=>transactionType(x)==="expense").reduce((t,x)=>t+Number(x.amount||0),0));}
  drawGroupedBars("trendChart",labels,[{values:income,color:"#2563eb"},{values:expense,color:"#f97316"}]);
  const rows=expenses.filter(x=>x.recordType!=="loan"&&String(x.date||"").startsWith(chosen)&&transactionType(x)==="expense"),sums={};rows.forEach(x=>{const k=x.payment||"Other";sums[k]=(sums[k]||0)+Number(x.amount||0);});const modes=Object.entries(sums).map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value),colors=["#2563eb","#f97316","#16a34a","#9333ea","#0891b2","#e11d48"];
- $("paymentAnalysis").innerHTML=modes.length?modes.map((x,i)=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${escapeHtml(x.name)}</b><b>${money(x.value)}</b></div><div class="progress"><div style="height:10px;width:${Math.min(100,x.value/Math.max(1,...modes.map(z=>z.value))*100)}%;background:${colors[i%colors.length]}"></div></div></div>`).join(""):"<p class='muted'>इस महीने कोई खर्च दर्ज नहीं है।</p>";drawDonut("paymentChart",modes);
+ drawDonut("paymentChart",modes);
 }
 function renderYearSummary(){
  const years=[...new Set(expenses.filter(x=>x.recordType!=="loan").map(x=>String(x.date||"").slice(0,4)).filter(x=>/^\d{4}$/.test(x)))].sort().reverse(),current=String(new Date().getFullYear());if(!years.includes(current))years.unshift(current);const sel=$("yearSelect"),old=sel.value;sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");sel.value=years.includes(old)?old:current;const year=sel.value||current;let ti=0,te=0,inc=[],exp=[],labels=[],rows=[];
