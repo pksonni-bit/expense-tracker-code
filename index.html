@@ -1659,27 +1659,43 @@ function render(){
   Number(b.updatedAt||0)-Number(a.updatedAt||0)
  );
 
- $("list").innerHTML=rows.length?rows.map(x=>`
-  <div class="expense">
-   <div>
-    <b>${transactionType(x)==="income"?"⬆️ CREDIT · ":"⬇️ DEBIT · "}${escapeHtml(x.category||"अन्य")}</b>
-    <div class="muted">
-     ${escapeHtml(x.date||"")} · ${escapeHtml(x.payment||"")}
+ const groupedMonths={};
+ rows.forEach(x=>{
+  const key=String(x.date||"").slice(0,7);
+  const folderKey=/^\\d{4}-\\d{2}$/.test(key)?key:"unknown";
+  (groupedMonths[folderKey]||(groupedMonths[folderKey]=[])).push(x);
+ });
+ // हर नए महीने का फोल्डर अपने आप दिखेगा, भले अभी उसमें entry न हो।
+ if(filterMode==="all"&&!q)groupedMonths[m]=groupedMonths[m]||[];
+ const monthKeys=Object.keys(groupedMonths).sort((a,b)=>b.localeCompare(a));
+ $("list").innerHTML=monthKeys.length?monthKeys.map(month=>{
+  const items=groupedMonths[month],monthExpense=items.filter(x=>transactionType(x)==="expense").reduce((a,x)=>a+Number(x.amount||0),0),monthIncome=items.filter(x=>transactionType(x)==="income").reduce((a,x)=>a+Number(x.amount||0),0);
+  const title=month==="unknown"?"तारीख उपलब्ध नहीं":new Date(Number(month.slice(0,4)),Number(month.slice(5,7))-1,1).toLocaleDateString("hi-IN",{month:"long",year:"numeric"});
+  const entryHtml=items.map(x=>`
+   <div class="expense">
+    <div>
+     <b>${transactionType(x)==="income"?"⬆️ CREDIT · ":"⬇️ DEBIT · "}${escapeHtml(x.category||"अन्य")}</b>
+     <div class="muted">${escapeHtml(x.date||"")} · ${escapeHtml(x.payment||"")}</div>
+     <div class="muted">${escapeHtml(x.note||"")}</div>
+     ${(Array.isArray(x.tags)?x.tags:[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}
+     ${x.receipt?`<div><button type="button" class="secondary" onclick="openReceipt('${escapeHtml(x.id)}')">📎 Attachment देखें</button></div>`:""}
     </div>
-    <div class="muted">${escapeHtml(x.note||"")}</div>
-    ${(Array.isArray(x.tags)?x.tags:[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}
-    ${x.receipt?`<div><button type="button" class="secondary" onclick="openReceipt('${escapeHtml(x.id)}')">📎 Attachment देखें</button></div>`:""}
-   </div>
-
-   <div style="text-align:right;min-width:105px">
-    <b style="color:${transactionType(x)==="income"?"#15803d":"#182235"}">${transactionType(x)==="income"?"+":"−"}${money(x.amount)}</b>
-    <div class="actions">
-     <button onclick="editExpense('${escapeHtml(x.id)}')">Edit</button>
-     <button class="danger" onclick="removeExpense('${escapeHtml(x.id)}')">हटाएँ</button>
+    <div style="text-align:right;min-width:105px">
+     <b style="color:${transactionType(x)==="income"?"#15803d":"#182235"}">${transactionType(x)==="income"?"+":"−"}${money(x.amount)}</b>
+     <div class="actions">
+      <button onclick="editExpense('${escapeHtml(x.id)}')">Edit</button>
+      <button class="danger" onclick="removeExpense('${escapeHtml(x.id)}')">हटाएँ</button>
+     </div>
     </div>
-   </div>
-  </div>
- `).join(""):"<p class='muted'>अभी कोई खर्च दर्ज नहीं है।</p>";
+   </div>`).join("");
+  return `<details ${month===m?"open":""} style="border:1px solid #dbe3ee;border-radius:10px;margin:10px 0;overflow:hidden">
+   <summary style="cursor:pointer;list-style:none;padding:12px;background:#f1f5f9;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
+    <b>📁 ${escapeHtml(title)} · ${items.length} entries</b>
+    <span style="font-size:12px">खर्च ${money(monthExpense)} · Income ${money(monthIncome)}</span>
+   </summary>
+   <div style="padding:4px 10px">${entryHtml||"<p class='muted'>इस महीने अभी कोई entry नहीं है।</p>"}</div>
+  </details>`;
+ }).join(""):"<p class='muted'>अभी कोई खर्च दर्ज नहीं है।</p>";
 
  const sums={};
 
