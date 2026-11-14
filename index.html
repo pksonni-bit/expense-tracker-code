@@ -307,6 +307,28 @@ table td,table th{padding:6px!important}
  .expense{font-size:12px}
 }
 
+
+/* ===== CLEAN, RESPONSIVE ENTRY FORM DESIGN ===== */
+.dashboard-entry-card{background:linear-gradient(180deg,#fff 0%,#fbfdff 100%)!important;border-color:#dfe8f3!important}
+.dashboard-entry-card>h3{display:flex;align-items:center;gap:7px;color:#1c426c!important}
+.dashboard-entry-card .entry-toggle{display:flex;align-items:center;justify-content:space-between;background:#f1f6fc;border-color:#e0eaf6;color:#245b91;font-weight:700}
+.dashboard-entry-card .entry-toggle:hover{background:#e8f1fb}
+.dashboard-entry-card .entry-fields{border-top:1px solid #e8eef6}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px 13px;align-items:start}
+.loan-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.form-field{min-width:0;display:flex;flex-direction:column;gap:4px}
+.form-field-wide{grid-column:1/-1}
+.form-field label{margin:0;color:#405875;font-size:12px;font-weight:700}
+.form-field input,.form-field select{width:100%;min-width:0;margin:0;padding:10px 11px;border:1px solid #d8e2ef;border-radius:9px;background:#fff;font-size:13px}
+.form-field input:focus,.form-field select:focus{border-color:#6a9ed3;box-shadow:0 0 0 3px #3985d51a}
+.form-field input[type=file]{padding:8px;background:#f8fafc;font-size:12px}
+.form-field .field-help{margin:2px 0 0;line-height:1.4}
+.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;padding-top:11px;border-top:1px solid #edf1f6}
+.form-actions button{min-width:130px}
+.form-actions button:first-child{background:#1765bd}
+@media(max-width:760px){.form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.loan-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.form-grid,.loan-form-grid{grid-template-columns:1fr;gap:9px}.form-field-wide{grid-column:auto}.form-actions{display:grid;grid-template-columns:1fr 1fr}.form-actions button{min-width:0;width:100%}.dashboard-entry-card .entry-toggle{font-size:12px}}
+
 </style>
 </head>
 
@@ -365,42 +387,17 @@ table td,table th{padding:6px!important}
   <h3 id="formTitle">➕ नया खर्च जोड़ें</h3>
   <button type="button" class="entry-toggle" onclick="toggleEntryPanel('expenseEntryFields')">＋ Entry Form खोलें</button>
   <div id="expenseEntryFields" class="entry-fields" hidden>
-  <label>तारीख</label>
-  <input id="date" type="date">
-
-  <label>राशि (₹)</label>
-  <input id="amount" type="number" min="0.01" step="0.01" placeholder="जैसे 250">
-
-  <label>लेन-देन का प्रकार</label>
-  <select id="transactionType" onchange="updateTransactionForm()">
-   <option value="expense">खर्च (Debit)</option>
-   <option value="income">Income / Credit</option>
-  </select>
-
-  <label id="categoryLabel">खर्च की श्रेणी</label>
-  <select id="category"></select>
-
-  <label>भुगतान का तरीका</label>
-  <select id="payment">
-   <option>Cash</option>
-   <option>UPI</option>
-   <option>Bank</option>
-   <option>Card</option>
-  </select>
-
-  <label>विवरण / Notes</label>
-  <input id="note" maxlength="300" placeholder="खर्च या जमा का विवरण">
-  <label>Tags (कॉमा लगाकर अलग करें)</label>
-  <input id="tags" maxlength="160" placeholder="जैसे घर, जरूरी, ऑफिस">
-  <label>Attachment: फोटो या PDF (वैकल्पिक)</label>
-  <input id="receiptFile" type="file" accept="image/*,application/pdf,.pdf" onchange="handleReceipt(event)">
-  <p class="field-help">फोटो अपने आप छोटी होगी। PDF अधिकतम 250 KB रखें। एक entry में एक attachment रखें।</p>
-  <div id="receiptPreview" class="muted"></div>
-
-  <div class="row">
-   <button onclick="saveExpense()" id="saveBtn">खर्च सेव करें</button>
-   <button class="secondary" onclick="resetForm()">रद्द करें</button>
-  </div>
+   <div class="form-grid expense-form-grid">
+    <div class="form-field"><label>तारीख</label><input id="date" type="date"></div>
+    <div class="form-field"><label>राशि (₹)</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="जैसे 250"></div>
+    <div class="form-field"><label>लेन-देन का प्रकार</label><select id="transactionType" onchange="updateTransactionForm()"><option value="expense">खर्च (Debit)</option><option value="income">Income / Credit</option></select></div>
+    <div class="form-field"><label id="categoryLabel">खर्च की श्रेणी</label><select id="category"></select></div>
+    <div class="form-field"><label>भुगतान का तरीका</label><select id="payment"><option>Cash</option><option>UPI</option><option>Bank</option><option>Card</option></select></div>
+    <div class="form-field"><label>Tags (कॉमा लगाकर अलग करें)</label><input id="tags" maxlength="160" placeholder="जैसे घर, जरूरी, ऑफिस"></div>
+    <div class="form-field form-field-wide"><label>विवरण / Notes</label><input id="note" maxlength="300" placeholder="खर्च या जमा का विवरण"></div>
+    <div class="form-field form-field-wide"><label>Attachment: फोटो या PDF (वैकल्पिक)</label><input id="receiptFile" type="file" accept="image/*,application/pdf,.pdf" onchange="handleReceipt(event)"><p class="field-help">फोटो अपने आप छोटी होगी। PDF अधिकतम 250 KB रखें। एक entry में एक attachment रखें।</p><div id="receiptPreview" class="muted"></div></div>
+   </div>
+   <div class="form-actions"><button onclick="saveExpense()" id="saveBtn">खर्च सेव करें</button><button class="secondary" onclick="resetForm()">रद्द करें</button></div>
   </div>
  </div>
 
@@ -408,12 +405,16 @@ table td,table th{padding:6px!important}
   <h3>🤝 उधार / दिए हुए पैसे का हिसाब</h3>
   <button type="button" class="entry-toggle" onclick="toggleEntryPanel('loanEntryFields')">＋ Udhaar Entry Form खोलें</button>
   <div id="loanEntryFields" class="entry-fields" hidden>
-  <label>लेन-देन</label><select id="loanDirection"><option value="lent">मैंने पैसे दिए (वापस लेने हैं)</option><option value="borrowed">मैंने पैसे उधार लिए (वापस देने हैं)</option></select>
-  <label>व्यक्ति का नाम</label><input id="loanPerson" maxlength="80" placeholder="किसको दिए / किससे लिए">
-  <div class="row"><div style="flex:1"><label>कुल राशि (₹)</label><input id="loanAmount" type="number" min="0.01" step="0.01" placeholder="राशि"></div><div style="flex:1"><label>पहले से वापस (₹)</label><input id="loanPaid" type="number" min="0" step="0.01" value="0"></div></div>
-  <div class="row"><div style="flex:1"><label>तारीख</label><input id="loanDate" type="date"></div><div style="flex:1"><label>वापसी की तारीख</label><input id="loanDue" type="date"></div></div>
-  <label>विवरण / Notes</label><input id="loanNote" maxlength="200" placeholder="उधार का कारण या अन्य जानकारी">
-  <button onclick="saveLoan()">उधार की Entry सेव करें</button>
+   <div class="form-grid loan-form-grid">
+    <div class="form-field"><label>लेन-देन</label><select id="loanDirection"><option value="lent">मैंने पैसे दिए (वापस लेने हैं)</option><option value="borrowed">मैंने पैसे उधार लिए (वापस देने हैं)</option></select></div>
+    <div class="form-field"><label>व्यक्ति का नाम</label><input id="loanPerson" maxlength="80" placeholder="किसको दिए / किससे लिए"></div>
+    <div class="form-field"><label>कुल राशि (₹)</label><input id="loanAmount" type="number" min="0.01" step="0.01" placeholder="राशि"></div>
+    <div class="form-field"><label>पहले से वापस (₹)</label><input id="loanPaid" type="number" min="0" step="0.01" value="0"></div>
+    <div class="form-field"><label>तारीख</label><input id="loanDate" type="date"></div>
+    <div class="form-field"><label>वापसी की तारीख</label><input id="loanDue" type="date"></div>
+    <div class="form-field form-field-wide"><label>विवरण / Notes</label><input id="loanNote" maxlength="200" placeholder="उधार का कारण या अन्य जानकारी"></div>
+   </div>
+   <div class="form-actions"><button onclick="saveLoan()">उधार की Entry सेव करें</button><button type="button" class="secondary" onclick="toggleEntryPanel('loanEntryFields',false)">रद्द करें</button></div>
   </div><div id="loanSummary" class="stats" style="margin-top:12px"></div><div id="loanList"></div>
  </div>
 
